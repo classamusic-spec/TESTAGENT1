@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { Activity } from "lucide-react";
 import { useState } from "react";
 import type { TradingPair } from "@kronos/shared";
@@ -14,6 +15,7 @@ import { PnlAnalytics } from "@/components/dashboard/pnl-analytics";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { useForecast } from "@/lib/forecast";
+import { fadeUp, staggerContainer, staggerItem } from "@/lib/motion";
 
 export default function AnalyticsPage() {
   const [pair, setPair] = useState<TradingPair>("ETH/USDC");
@@ -42,7 +44,12 @@ export default function AnalyticsPage() {
         </div>
       </header>
 
-      <main className="container space-y-6 py-8">
+      <motion.main
+        className="container space-y-6 py-8"
+        variants={fadeUp}
+        initial="hidden"
+        animate="show"
+      >
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
           <p className="text-sm text-muted-foreground">
@@ -54,18 +61,18 @@ export default function AnalyticsPage() {
         {isLoading || !data ? (
           <div className="h-[480px] w-full rounded-md shimmer" />
         ) : (
-          <>
-            <div className="grid gap-6 lg:grid-cols-3">
+          <motion.div className="space-y-6" variants={staggerContainer} initial="hidden" animate="show">
+            <motion.div className="grid gap-6 lg:grid-cols-3" variants={staggerItem}>
               <PnlAnalytics candles={data.candles} />
               <CalibrationChart candles={data.candles} />
-            </div>
-            <div className="grid gap-6 lg:grid-cols-2">
+            </motion.div>
+            <motion.div className="grid gap-6 lg:grid-cols-2" variants={staggerItem}>
               <AssetPrefsPanel />
               <NotificationPrefsPanel />
-            </div>
-          </>
+            </motion.div>
+          </motion.div>
         )}
-      </main>
+      </motion.main>
     </div>
   );
 }

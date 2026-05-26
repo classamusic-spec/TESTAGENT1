@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { Activity, FlaskConical } from "lucide-react";
 import { useState } from "react";
@@ -19,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { useForecast } from "@/lib/forecast";
+import { fadeUp } from "@/lib/motion";
 
 const ForecastChart = dynamic(
   () => import("@/components/dashboard/forecast-chart").then((m) => m.ForecastChart),
@@ -52,7 +54,12 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="container space-y-6 py-8">
+      <motion.main
+        className="container space-y-6 py-8"
+        variants={fadeUp}
+        initial="hidden"
+        animate="show"
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
@@ -139,7 +146,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         )}
-      </main>
+      </motion.main>
     </div>
   );
 }

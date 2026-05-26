@@ -241,3 +241,21 @@
     transform: translateX(-50%);
   }
 }
+
+/* Accessibility: collapse motion for users who ask for it. Framer Motion is
+   handled by MotionConfig reducedMotion="user"; this covers CSS animations. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .aurora,
+  .text-shimmer,
+  .marquee-track {
+    animation: none !important;
+  }
+}

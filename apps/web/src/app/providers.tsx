@@ -8,6 +8,7 @@ import {
 } from "@rainbow-me/rainbowkit";
 import "@rainbow-me/rainbowkit/styles.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MotionConfig } from "framer-motion";
 import { useEffect, useState, type ReactNode } from "react";
 import { WagmiProvider } from "wagmi";
 
@@ -60,7 +61,7 @@ export function Providers({ children }: { children: ReactNode }) {
               borderRadius: "medium",
             })}
           >
-            {children}
+            <MotionConfig reducedMotion="user">{children}</MotionConfig>
           </RainbowKitProvider>
         </RainbowKitAuthenticationProvider>
       </QueryClientProvider>
