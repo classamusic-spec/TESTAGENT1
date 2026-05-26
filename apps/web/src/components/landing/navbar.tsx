@@ -27,6 +27,9 @@ export function Navbar() {
               {link.label}
             </a>
           ))}
+          <a href="/dashboard" className="transition-colors hover:text-foreground">
+            Dashboard
+          </a>
         </nav>
 
         <ConnectWalletButton />

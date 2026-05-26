@@ -1,0 +1,121 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { Activity, FlaskConical } from "lucide-react";
+import { useState } from "react";
+import type { TradingPair } from "@kronos/shared";
+
+import { ForecastSummary } from "@/components/dashboard/forecast-summary";
+import { PairSelector } from "@/components/dashboard/pair-selector";
+import { RiskPanel } from "@/components/dashboard/risk-panel";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
+import { useForecast } from "@/lib/forecast";
+import { SAMPLE_PAIRS } from "@/lib/sample-data";
+
+const ForecastChart = dynamic(
+  () => import("@/components/dashboard/forecast-chart").then((m) => m.ForecastChart),
+  { ssr: false, loading: () => <div className="h-full w-full animate-pulse rounded-md bg-secondary/40" /> },
+);
+
+export default function DashboardPage() {
+  const [pair, setPair] = useState<TradingPair>("ETH/USDC");
+  const { data, isLoading } = useForecast(pair);
+
+  return (
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-lg">
+        <div className="container flex h-16 items-center justify-between gap-4">
+          <a href="/" className="flex items-center gap-2 font-semibold">
+            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/15 text-primary">
+              <Activity className="h-5 w-5" />
+            </span>
+            Kronos Trader
+          </a>
+          <PairSelector pairs={SAMPLE_PAIRS} selected={pair} onSelect={setPair} />
+          <ConnectWalletButton />
+        </div>
+      </header>
+
+      <main className="container space-y-6 py-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-sm text-muted-foreground">
+              Probabilistic forecast for <span className="font-mono">{pair}</span> · 1h
+            </p>
+          </div>
+          {data?.isSample && (
+            <Badge variant="muted">
+              <FlaskConical className="h-3.5 w-3.5" />
+              Sample data
+            </Badge>
+          )}
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <CardHeader className="flex-row items-center justify-between">
+              <CardTitle className="font-mono text-base">{pair}</CardTitle>
+              <span className="text-xs text-muted-foreground">
+                History + 12-step forecast (80% band)
+              </span>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[360px] w-full">
+                {isLoading || !data ? (
+                  <div className="h-full w-full animate-pulse rounded-md bg-secondary/40" />
+                ) : (
+                  <ForecastChart candles={data.candles} forecast={data.forecast} />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-6">
+            {data && <ForecastSummary forecast={data.forecast} />}
+            <RiskPanel />
+          </div>
+        </div>
+
+        {data && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Forecast steps</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-muted-foreground">
+                      <th className="pb-2 font-medium">Time</th>
+                      <th className="pb-2 text-right font-medium">Median (p50)</th>
+                      <th className="pb-2 text-right font-medium">Lower</th>
+                      <th className="pb-2 text-right font-medium">Upper</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-mono">
+                    {data.forecast.steps.slice(0, 8).map((s) => (
+                      <tr key={s.openTime} className="border-t border-border/60">
+                        <td className="py-2 text-muted-foreground">
+                          {new Date(s.openTime).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </td>
+                        <td className="py-2 text-right text-foreground">{s.close.toFixed(2)}</td>
+                        <td className="py-2 text-right text-muted-foreground">{s.lower.toFixed(2)}</td>
+                        <td className="py-2 text-right text-muted-foreground">{s.upper.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </main>
+    </div>
+  );
+}
