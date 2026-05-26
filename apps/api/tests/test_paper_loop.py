@@ -7,6 +7,7 @@ from src.execution.loop import PaperSession
 from src.execution.models import Portfolio
 from src.execution.paper_broker import PaperBroker
 from src.risk.manager import RiskLimits, RiskManager
+from src.risk.stops import StopConfig
 from src.signals.policy import SignalConfig
 
 PAIR = "ETH/USDC"
@@ -64,6 +65,41 @@ def test_disabled_trading_keeps_everything_flat() -> None:
     assert result.halted
     assert result.fill is None
     assert session.portfolio.position(PAIR).quantity == 0.0
+
+
+def test_stop_loss_exits_long_autonomously() -> None:
+    session = PaperSession(
+        portfolio=Portfolio(cash=10_000.0),
+        risk=RiskManager(RiskLimits(max_position_size=1000, max_drawdown=0.9)),
+        broker=PaperBroker(CostModel(fee_bps=0, slippage_bps=0)),
+        signal_config=SignalConfig(),
+        stops=StopConfig(stop_loss_pct=0.05),
+    )
+    session.step(PAIR, mark_price=100.0, p_up=0.8, ts=1)  # opens long at 100
+    assert session.portfolio.position(PAIR).quantity > 0
+
+    # Bot still wants long (p_up high), but price fell 6% — the stop forces a flat.
+    stopped = session.step(PAIR, mark_price=94.0, p_up=0.8, ts=2)
+    assert stopped.reason == "stop_loss"
+    assert stopped.target_notional == 0.0
+    assert session.portfolio.position(PAIR).quantity == pytest.approx(0.0)
+
+
+def test_take_profit_books_gain_on_short() -> None:
+    session = PaperSession(
+        portfolio=Portfolio(cash=10_000.0),
+        risk=RiskManager(RiskLimits(max_position_size=1000, max_drawdown=0.9)),
+        broker=PaperBroker(CostModel(fee_bps=0, slippage_bps=0)),
+        signal_config=SignalConfig(),
+        stops=StopConfig(take_profit_pct=0.10),
+    )
+    session.step(PAIR, mark_price=100.0, p_up=0.1, ts=1)  # opens short at 100
+    assert session.portfolio.position(PAIR).quantity < 0
+
+    profit = session.step(PAIR, mark_price=89.0, p_up=0.1, ts=2)  # -11% favors the short
+    assert profit.reason == "take_profit"
+    assert session.portfolio.position(PAIR).quantity == pytest.approx(0.0)
+    assert profit.equity > 10_000.0
 
 
 def test_session_requires_paper_broker() -> None:
