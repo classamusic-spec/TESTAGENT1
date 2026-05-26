@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 
 import { ForecastPreview } from "@/components/landing/forecast-preview";
+import { AuroraBackground } from "@/components/ui/aurora-background";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -18,7 +19,7 @@ import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 export function Hero() {
   return (
     <section className="relative overflow-hidden">
-      <div className="grid-backdrop absolute inset-0 -z-10" />
+      <AuroraBackground className="h-[640px]" />
       <div className="container grid items-center gap-12 py-20 md:py-28 lg:grid-cols-2">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -44,7 +45,8 @@ export function Hero() {
             </a>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            Live trading is always a separate, explicit opt-in. We never take custody of your funds.
+            Trades the top 20 assets only. Live trading is always a separate, explicit opt-in — we
+            never take custody of your funds.
           </p>
         </motion.div>
 
@@ -53,7 +55,7 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
         >
-          <Card className="shadow-2xl shadow-primary/5">
+          <Card className="ring-gradient shadow-2xl shadow-primary/10">
             <CardHeader className="flex-row items-center justify-between">
               <div>
                 <CardTitle className="font-mono text-base">ETH / USDC</CardTitle>

@@ -5,18 +5,19 @@ import { Activity, FlaskConical } from "lucide-react";
 import { useState } from "react";
 import type { TradingPair } from "@kronos/shared";
 
+import { AssetSelect } from "@/components/dashboard/asset-select";
 import { ForecastSummary } from "@/components/dashboard/forecast-summary";
-import { PairSelector } from "@/components/dashboard/pair-selector";
 import { RiskPanel } from "@/components/dashboard/risk-panel";
+import { StatCards } from "@/components/dashboard/stat-cards";
+import { AuroraBackground } from "@/components/ui/aurora-background";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { useForecast } from "@/lib/forecast";
-import { SAMPLE_PAIRS } from "@/lib/sample-data";
 
 const ForecastChart = dynamic(
   () => import("@/components/dashboard/forecast-chart").then((m) => m.ForecastChart),
-  { ssr: false, loading: () => <div className="h-full w-full animate-pulse rounded-md bg-secondary/40" /> },
+  { ssr: false, loading: () => <div className="h-full w-full rounded-md shimmer" /> },
 );
 
 export default function DashboardPage() {
@@ -24,26 +25,32 @@ export default function DashboardPage() {
   const { data, isLoading } = useForecast(pair);
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-lg">
+    <div className="relative min-h-screen">
+      <AuroraBackground className="h-[420px]" />
+
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/60 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between gap-4">
           <a href="/" className="flex items-center gap-2 font-semibold">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/15 text-primary">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary ring-1 ring-inset ring-primary/30">
               <Activity className="h-5 w-5" />
             </span>
             Kronos Trader
           </a>
-          <PairSelector pairs={SAMPLE_PAIRS} selected={pair} onSelect={setPair} />
-          <ConnectWalletButton />
+          <div className="flex items-center gap-3">
+            <AssetSelect selected={pair} onSelect={setPair} />
+            <ConnectWalletButton />
+          </div>
         </div>
       </header>
 
       <main className="container space-y-6 py-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              <span className="font-mono">{pair}</span> forecast
+            </h1>
             <p className="text-sm text-muted-foreground">
-              Probabilistic forecast for <span className="font-mono">{pair}</span> · 1h
+              Probabilistic 12-step outlook · 1h candles · top-20 universe
             </p>
           </div>
           {data?.isSample && (
@@ -54,8 +61,10 @@ export default function DashboardPage() {
           )}
         </div>
 
+        {data && <StatCards candles={data.candles} forecast={data.forecast} />}
+
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
+          <Card className="ring-gradient lg:col-span-2">
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle className="font-mono text-base">{pair}</CardTitle>
               <span className="text-xs text-muted-foreground">
@@ -65,7 +74,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="h-[360px] w-full">
                 {isLoading || !data ? (
-                  <div className="h-full w-full animate-pulse rounded-md bg-secondary/40" />
+                  <div className="h-full w-full rounded-md shimmer" />
                 ) : (
                   <ForecastChart candles={data.candles} forecast={data.forecast} />
                 )}
@@ -104,9 +113,9 @@ export default function DashboardPage() {
                             minute: "2-digit",
                           })}
                         </td>
-                        <td className="py-2 text-right text-foreground">{s.close.toFixed(2)}</td>
-                        <td className="py-2 text-right text-muted-foreground">{s.lower.toFixed(2)}</td>
-                        <td className="py-2 text-right text-muted-foreground">{s.upper.toFixed(2)}</td>
+                        <td className="py-2 text-right text-foreground">{s.close.toFixed(4)}</td>
+                        <td className="py-2 text-right text-muted-foreground">{s.lower.toFixed(4)}</td>
+                        <td className="py-2 text-right text-muted-foreground">{s.upper.toFixed(4)}</td>
                       </tr>
                     ))}
                   </tbody>

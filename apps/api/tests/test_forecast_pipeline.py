@@ -79,3 +79,9 @@ def test_generate_forecast_raises_without_closed_candles() -> None:
     now_ms = 0  # the only candle is still in progress
     with pytest.raises(ValueError):
         generate_forecast(_Exchange(rows), _RecordingClient(), "ETH/USDC", "1h", now_ms=now_ms)
+
+
+def test_generate_forecast_rejects_off_universe_pair() -> None:
+    rows = [[i * STEP, 100.0, 101.0, 99.0, 100.0 + i, 10.0] for i in range(4)]
+    with pytest.raises(ValueError, match="tradeable universe"):
+        generate_forecast(_Exchange(rows), _RecordingClient(), "PEPE/USDC", "1h", now_ms=10 * STEP)

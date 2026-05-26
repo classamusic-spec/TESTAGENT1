@@ -20,6 +20,51 @@ export type TradingPair = `${string}/${string}`;
 
 export type CandleInterval = "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
 
+// --- Tradeable universe -----------------------------------------------------
+
+/**
+ * The bot trades only the top-20 assets, quoted in USDC. This is the single
+ * source of truth for the tradeable universe; apps/api mirrors it and rejects
+ * any pair outside it. Like all trading-authority scope, this list changes only
+ * through git and human review (invariant 3), never at runtime.
+ */
+export interface TradeableAsset {
+  symbol: string;
+  name: string;
+  pair: TradingPair;
+}
+
+export const QUOTE_CURRENCY = "USDC" as const;
+
+export const TRADEABLE_ASSETS: readonly TradeableAsset[] = [
+  { symbol: "BTC", name: "Bitcoin", pair: "BTC/USDC" },
+  { symbol: "ETH", name: "Ethereum", pair: "ETH/USDC" },
+  { symbol: "BNB", name: "BNB", pair: "BNB/USDC" },
+  { symbol: "SOL", name: "Solana", pair: "SOL/USDC" },
+  { symbol: "XRP", name: "XRP", pair: "XRP/USDC" },
+  { symbol: "ADA", name: "Cardano", pair: "ADA/USDC" },
+  { symbol: "DOGE", name: "Dogecoin", pair: "DOGE/USDC" },
+  { symbol: "TRX", name: "TRON", pair: "TRX/USDC" },
+  { symbol: "AVAX", name: "Avalanche", pair: "AVAX/USDC" },
+  { symbol: "LINK", name: "Chainlink", pair: "LINK/USDC" },
+  { symbol: "DOT", name: "Polkadot", pair: "DOT/USDC" },
+  { symbol: "MATIC", name: "Polygon", pair: "MATIC/USDC" },
+  { symbol: "TON", name: "Toncoin", pair: "TON/USDC" },
+  { symbol: "SHIB", name: "Shiba Inu", pair: "SHIB/USDC" },
+  { symbol: "LTC", name: "Litecoin", pair: "LTC/USDC" },
+  { symbol: "BCH", name: "Bitcoin Cash", pair: "BCH/USDC" },
+  { symbol: "NEAR", name: "NEAR Protocol", pair: "NEAR/USDC" },
+  { symbol: "UNI", name: "Uniswap", pair: "UNI/USDC" },
+  { symbol: "APT", name: "Aptos", pair: "APT/USDC" },
+  { symbol: "ATOM", name: "Cosmos", pair: "ATOM/USDC" },
+] as const;
+
+export const TRADEABLE_PAIRS: readonly TradingPair[] = TRADEABLE_ASSETS.map((a) => a.pair);
+
+export function isTradeable(pair: string): pair is TradingPair {
+  return TRADEABLE_ASSETS.some((a) => a.pair === pair);
+}
+
 /**
  * A single OHLCV candle. `closed` distinguishes a finalized candle from the
  * in-progress one. Forecasts must only ever consume closed candles

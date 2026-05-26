@@ -1,4 +1,4 @@
-import type { Candle, Forecast, TradingPair } from "@kronos/shared";
+import { TRADEABLE_PAIRS, type Candle, type Forecast, type TradingPair } from "@kronos/shared";
 
 /**
  * Deterministic sample market data for the dashboard. This is clearly-labeled
@@ -20,11 +20,44 @@ function mulberry32(seed: number): () => number {
 
 const HOUR_MS = 3_600_000;
 
-const SEEDS: Record<string, { seed: number; base: number }> = {
-  "ETH/USDC": { seed: 42, base: 3200 },
-  "BTC/USDC": { seed: 7, base: 64000 },
-  "SOL/USDC": { seed: 99, base: 145 },
+// Indicative base prices per asset so sample charts look plausible. Real prices
+// arrive with the live data pipeline; these only seed the placeholder series.
+const BASE_PRICE: Record<string, number> = {
+  BTC: 64000,
+  ETH: 3200,
+  BNB: 580,
+  SOL: 145,
+  XRP: 0.52,
+  ADA: 0.45,
+  DOGE: 0.13,
+  TRX: 0.12,
+  AVAX: 28,
+  LINK: 14,
+  DOT: 6.4,
+  MATIC: 0.58,
+  TON: 5.6,
+  SHIB: 0.000024,
+  LTC: 72,
+  BCH: 380,
+  NEAR: 5.1,
+  UNI: 7.3,
+  APT: 8.2,
+  ATOM: 7.1,
 };
+
+function hashSeed(text: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function seedFor(pair: TradingPair): { seed: number; base: number } {
+  const symbol = pair.split("/")[0] ?? pair;
+  return { seed: hashSeed(pair), base: BASE_PRICE[symbol] ?? 100 };
+}
 
 export interface SampleForecast {
   candles: Candle[];
@@ -37,7 +70,7 @@ export function getSampleForecast(
   history = 120,
   horizon = 12,
 ): SampleForecast {
-  const config = SEEDS[pair] ?? { seed: 1, base: 1000 };
+  const config = seedFor(pair);
   const rand = mulberry32(config.seed);
 
   // Anchor the last closed candle to the most recent completed hour.
@@ -103,4 +136,4 @@ export function getSampleForecast(
   return { candles, forecast };
 }
 
-export const SAMPLE_PAIRS: TradingPair[] = ["ETH/USDC", "BTC/USDC", "SOL/USDC"];
+export const SAMPLE_PAIRS: readonly TradingPair[] = TRADEABLE_PAIRS;

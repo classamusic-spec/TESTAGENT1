@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cn, shortenAddress } from "@/lib/utils";
+import { cn, formatPrice, shortenAddress } from "@/lib/utils";
 
 describe("shortenAddress", () => {
   it("shortens a full EVM address", () => {
@@ -23,5 +23,12 @@ describe("shortenAddress", () => {
 describe("cn", () => {
   it("merges and dedupes tailwind classes", () => {
     expect(cn("px-2", "px-4")).toBe("px-4");
+  });
+});
+
+describe("formatPrice", () => {
+  it("uses fewer decimals for large prices and more for small", () => {
+    expect(formatPrice(64000)).toBe("$64,000.00");
+    expect(formatPrice(0.000024)).toBe("$0.00002400");
   });
 });

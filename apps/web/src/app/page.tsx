@@ -4,6 +4,8 @@ import { Hero } from "@/components/landing/hero";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { Navbar } from "@/components/landing/navbar";
 import { Safety } from "@/components/landing/safety";
+import { SupportedAssets } from "@/components/landing/supported-assets";
+import { Reveal } from "@/components/ui/reveal";
 
 export default function HomePage() {
   return (
@@ -11,9 +13,16 @@ export default function HomePage() {
       <Navbar />
       <main className="flex-1">
         <Hero />
-        <Features />
-        <HowItWorks />
-        <Safety />
+        <SupportedAssets />
+        <Reveal>
+          <Features />
+        </Reveal>
+        <Reveal>
+          <HowItWorks />
+        </Reveal>
+        <Reveal>
+          <Safety />
+        </Reveal>
       </main>
       <Footer />
     </div>

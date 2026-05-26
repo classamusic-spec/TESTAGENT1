@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { TRADEABLE_PAIRS } from "@kronos/shared";
 
 import { getSampleForecast } from "@/lib/sample-data";
 import { deriveSignal } from "@/lib/signal";
@@ -38,5 +39,16 @@ describe("getSampleForecast", () => {
     const first = forecast.steps[0]!;
     const last = forecast.steps[forecast.steps.length - 1]!;
     expect(last.upper - last.lower).toBeGreaterThan(first.upper - first.lower);
+  });
+
+  it("produces valid data for every pair in the top-20 universe", () => {
+    expect(TRADEABLE_PAIRS).toHaveLength(20);
+    for (const pair of TRADEABLE_PAIRS) {
+      const { candles, forecast } = getSampleForecast(pair);
+      expect(candles.length).toBeGreaterThan(0);
+      expect(candles.every((c) => Number.isFinite(c.close) && c.close > 0)).toBe(true);
+      expect(forecast.pUp).toBeGreaterThanOrEqual(0);
+      expect(forecast.pUp).toBeLessThanOrEqual(1);
+    }
   });
 });

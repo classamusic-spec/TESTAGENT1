@@ -38,9 +38,12 @@ export function Features() {
       </div>
       <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {features.map((feature) => (
-          <Card key={feature.title}>
+          <Card
+            key={feature.title}
+            className="ring-gradient group transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5"
+          >
             <CardHeader>
-              <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/15 text-primary">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary ring-1 ring-inset ring-primary/20 transition-transform duration-300 group-hover:scale-110">
                 <feature.icon className="h-5 w-5" />
               </span>
               <CardTitle className="mt-2 text-base">{feature.title}</CardTitle>
