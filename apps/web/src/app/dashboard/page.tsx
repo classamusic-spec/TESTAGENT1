@@ -7,6 +7,7 @@ import type { TradingPair } from "@kronos/shared";
 
 import { AssetSelect } from "@/components/dashboard/asset-select";
 import { ForecastSummary } from "@/components/dashboard/forecast-summary";
+import { ModelStatusPanel } from "@/components/dashboard/model-status-panel";
 import { NetworkBadge } from "@/components/dashboard/network-badge";
 import { PaperPanel } from "@/components/dashboard/paper-panel";
 import { RiskPanel } from "@/components/dashboard/risk-panel";
@@ -93,7 +94,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {data && <PaperPanel candles={data.candles} />}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {data && <PaperPanel candles={data.candles} />}
+          <ModelStatusPanel />
+        </div>
 
         {data && (
           <Card>
