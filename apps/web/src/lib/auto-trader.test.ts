@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Candle } from "@kronos/shared";
 
-import { runAutoStrategy } from "@/lib/auto-trader";
+import { computeAtrSeries, runAutoStrategy } from "@/lib/auto-trader";
 
 function candles(closes: number[]): Candle[] {
   return closes.map(
@@ -15,6 +15,14 @@ function candles(closes: number[]): Candle[] {
         volume: 1,
         closed: true,
       }) as Candle,
+  );
+}
+
+function ohlc(rows: [number, number, number][]): Candle[] {
+  // [high, low, close]
+  return rows.map(
+    ([h, l, c], i) =>
+      ({ openTime: i * 3_600_000, open: c, high: h, low: l, close: c, volume: 1, closed: true }) as Candle,
   );
 }
 
@@ -68,6 +76,24 @@ describe("runAutoStrategy", () => {
       takeProfitPct: null,
     });
     expect(run.trades.some((t) => t.reason === "open_short")).toBe(true);
+  });
+
+  it("computes a causal ATR that rises with range", () => {
+    const calm = ohlc(Array.from({ length: 20 }, () => [101, 99, 100] as [number, number, number]));
+    const wild = ohlc(Array.from({ length: 20 }, () => [108, 92, 100] as [number, number, number]));
+    expect(computeAtrSeries(calm, 14).at(-1)!).toBeCloseTo(2, 1);
+    expect(computeAtrSeries(wild, 14).at(-1)!).toBeGreaterThan(computeAtrSeries(calm, 14).at(-1)!);
+  });
+
+  it("ATR stop mode still exits a long on a sharp drop", () => {
+    const prices = [...Array.from({ length: 15 }, (_, i) => 100 + i), 80, 79, 78];
+    const run = runAutoStrategy(candles(prices), {
+      stopMode: "atr",
+      atrMult: 2,
+      takeProfitPct: null,
+      allowShort: false,
+    });
+    expect(run.trades.some((t) => t.reason === "stop_loss")).toBe(true);
   });
 
   it("reports win rate over closed trades", () => {

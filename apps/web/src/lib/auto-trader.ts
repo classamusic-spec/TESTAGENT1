@@ -18,13 +18,18 @@ export type TradeReason =
   | "stop_loss"
   | "take_profit";
 
+export type StopMode = "percent" | "atr";
+
 export interface AutoConfig {
   startCash: number;
   maxPosition: number; // notional committed per trade
   longThreshold: number; // p_up >= -> go long
   shortThreshold: number; // p_up <= -> go short
   allowShort: boolean;
+  stopMode: StopMode; // fixed-percent stop, or volatility-scaled (ATR) stop
   stopLossPct: number | null;
+  atrLookback: number;
+  atrMult: number;
   takeProfitPct: number | null;
   trailing: boolean;
   feeBps: number;
@@ -37,12 +42,33 @@ export const DEFAULT_AUTO_CONFIG: AutoConfig = {
   longThreshold: 0.55,
   shortThreshold: 0.45,
   allowShort: true,
+  stopMode: "percent",
   stopLossPct: 0.04,
+  atrLookback: 14,
+  atrMult: 2,
   takeProfitPct: 0.08,
   trailing: false,
   feeBps: 10,
   slippageBps: 5,
 };
+
+/** Causal ATR (average true range) at each bar, using only prior/this candle. */
+export function computeAtrSeries(candles: Candle[], lookback: number): number[] {
+  const tr: number[] = [0];
+  for (let i = 1; i < candles.length; i++) {
+    const h = candles[i]!.high;
+    const l = candles[i]!.low;
+    const pc = candles[i - 1]!.close;
+    tr.push(Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc)));
+  }
+  const atr: number[] = [];
+  for (let i = 0; i < candles.length; i++) {
+    const start = Math.max(1, i - lookback + 1);
+    const window = tr.slice(start, i + 1);
+    atr.push(window.length ? window.reduce((a, b) => a + b, 0) / window.length : 0);
+  }
+  return atr;
+}
 
 export interface AutoTrade {
   index: number;
@@ -91,13 +117,28 @@ function signalFor(pUp: number, cfg: AutoConfig): PositionSide {
   return "flat";
 }
 
-function stopLevels(side: PositionSide, entry: number, best: number, cfg: AutoConfig) {
+function stopLevels(
+  side: PositionSide,
+  entry: number,
+  best: number,
+  atrAtEntry: number,
+  cfg: AutoConfig,
+) {
   let stop: number | null = null;
   let target: number | null = null;
   const ref = cfg.trailing ? best : entry;
-  if (cfg.stopLossPct != null) {
-    stop = side === "long" ? ref * (1 - cfg.stopLossPct) : ref * (1 + cfg.stopLossPct);
+
+  // Stop distance: a fixed % of entry, or a multiple of ATR at entry.
+  let distance: number | null = null;
+  if (cfg.stopMode === "atr") {
+    if (atrAtEntry > 0) distance = cfg.atrMult * atrAtEntry;
+  } else if (cfg.stopLossPct != null) {
+    distance = entry * cfg.stopLossPct;
   }
+  if (distance != null) {
+    stop = side === "long" ? ref - distance : ref + distance;
+  }
+
   if (cfg.takeProfitPct != null) {
     target = side === "long" ? entry * (1 + cfg.takeProfitPct) : entry * (1 - cfg.takeProfitPct);
   }
@@ -108,12 +149,14 @@ export function runAutoStrategy(candles: Candle[], config: Partial<AutoConfig> =
   const cfg = { ...DEFAULT_AUTO_CONFIG, ...config };
   const slip = cfg.slippageBps / 10_000;
   const feeRate = cfg.feeBps / 10_000;
+  const atrSeries = computeAtrSeries(candles, cfg.atrLookback);
 
   let cash = cfg.startCash;
   let side: PositionSide = "flat";
   let units = 0; // signed
   let entry = 0;
   let best = 0;
+  let atrAtEntry = 0;
 
   const steps: AutoStep[] = [];
   const trades: AutoTrade[] = [];
@@ -153,6 +196,7 @@ export function runAutoStrategy(candles: Candle[], config: Partial<AutoConfig> =
     side = next;
     entry = fillPrice;
     best = fillPrice;
+    atrAtEntry = atrSeries[index] ?? 0;
     trades.push({
       index,
       time,
@@ -181,7 +225,7 @@ export function runAutoStrategy(candles: Candle[], config: Partial<AutoConfig> =
       // 1) Autonomous exits take priority over the entry signal.
       let exited = false;
       if (side !== "flat") {
-        const { stop, target } = stopLevels(side, entry, best, cfg);
+        const { stop, target } = stopLevels(side, entry, best, atrAtEntry, cfg);
         const hitStop =
           stop != null && (side === "long" ? mark <= stop : mark >= stop);
         const hitTarget =
@@ -216,7 +260,8 @@ export function runAutoStrategy(candles: Candle[], config: Partial<AutoConfig> =
     peakEquity = Math.max(peakEquity, equity);
     if (peakEquity > 0) maxDrawdown = Math.max(maxDrawdown, (peakEquity - equity) / peakEquity);
 
-    const levels = side !== "flat" ? stopLevels(side, entry, best, cfg) : { stop: null, target: null };
+    const levels =
+      side !== "flat" ? stopLevels(side, entry, best, atrAtEntry, cfg) : { stop: null, target: null };
     steps.push({
       index: i,
       time,

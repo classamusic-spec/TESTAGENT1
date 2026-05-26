@@ -23,6 +23,32 @@ const REASON_STYLE: Record<TradeReason, { label: string; className: string }> = 
   take_profit: { label: "Take profit", className: "bg-emerald-400/15 text-emerald-300" },
 };
 
+const EVENT_DOT_COLOR: Partial<Record<TradeReason, string>> = {
+  open_long: "hsl(158 84% 50%)",
+  open_short: "hsl(199 89% 64%)",
+  flip: "hsl(38 92% 60%)",
+  signal_exit: "hsl(215 16% 60%)",
+  stop_loss: "hsl(0 72% 60%)",
+  take_profit: "hsl(152 76% 55%)",
+};
+
+// Marks each bar where the bot traded directly on the equity curve.
+function TradeDot(props: {
+  cx?: number;
+  cy?: number;
+  payload?: { event?: TradeReason | null };
+}) {
+  const { cx, cy, payload } = props;
+  const event = payload?.event;
+  if (cx == null || cy == null || !event) return <g />;
+  const color = EVENT_DOT_COLOR[event] ?? "white";
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={4.5} fill={color} stroke="hsl(222 44% 7%)" strokeWidth={1.5} />
+    </g>
+  );
+}
+
 function SideBadge({ side }: { side: "long" | "short" | "flat" }) {
   const map = {
     long: "border-primary/40 bg-primary/10 text-primary",
@@ -71,7 +97,9 @@ export function PaperLab({ candles }: { candles: Candle[] }) {
   }, [playing, idx, lastIndex, speed]);
 
   const step = run.steps[Math.min(idx, lastIndex)] ?? run.steps[0];
-  const visibleCurve = run.steps.slice(0, idx + 1).map((s) => ({ time: s.time, equity: s.equity }));
+  const visibleCurve = run.steps
+    .slice(0, idx + 1)
+    .map((s) => ({ time: s.time, equity: s.equity, event: s.event }));
   const visibleTrades = run.trades.filter((t) => t.index <= idx);
 
   if (!step) return null;
@@ -148,6 +176,8 @@ export function PaperLab({ candles }: { candles: Candle[] }) {
                   strokeWidth={2}
                   fill="url(#lab-equity)"
                   isAnimationActive={false}
+                  dot={<TradeDot />}
+                  activeDot={{ r: 4 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -315,21 +345,54 @@ export function PaperLab({ candles }: { candles: Candle[] }) {
             />
           </Field>
 
-          <Field
-            label={`Stop-loss · ${config.stopLossPct != null ? `${(config.stopLossPct * 100).toFixed(0)}%` : "off"}`}
-          >
-            <input
-              type="range"
-              min={0}
-              max={20}
-              value={config.stopLossPct != null ? Math.round(config.stopLossPct * 100) : 0}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                set("stopLossPct", v === 0 ? null : v / 100);
-              }}
-              className="accent-primary"
-            />
+          <Field label="Stop-loss basis">
+            <div className="flex gap-1 rounded-lg bg-secondary/40 p-1">
+              {(["percent", "atr"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => set("stopMode", m)}
+                  className={cn(
+                    "flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                    config.stopMode === m
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {m === "percent" ? "Fixed %" : "ATR (volatility)"}
+                </button>
+              ))}
+            </div>
           </Field>
+
+          {config.stopMode === "percent" ? (
+            <Field
+              label={`Stop-loss · ${config.stopLossPct != null ? `${(config.stopLossPct * 100).toFixed(0)}%` : "off"}`}
+            >
+              <input
+                type="range"
+                min={0}
+                max={20}
+                value={config.stopLossPct != null ? Math.round(config.stopLossPct * 100) : 0}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  set("stopLossPct", v === 0 ? null : v / 100);
+                }}
+                className="accent-primary"
+              />
+            </Field>
+          ) : (
+            <Field label={`ATR stop · ${config.atrMult.toFixed(1)}× ATR(${config.atrLookback})`}>
+              <input
+                type="range"
+                min={5}
+                max={50}
+                value={Math.round(config.atrMult * 10)}
+                onChange={(e) => set("atrMult", Number(e.target.value) / 10)}
+                className="accent-primary"
+              />
+            </Field>
+          )}
 
           <Field
             label={`Take-profit · ${config.takeProfitPct != null ? `${(config.takeProfitPct * 100).toFixed(0)}%` : "off"}`}
