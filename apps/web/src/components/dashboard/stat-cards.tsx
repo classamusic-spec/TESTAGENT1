@@ -18,8 +18,8 @@ function StatCard({
   return (
     <div
       className={cn(
-        "ring-gradient relative overflow-hidden rounded-xl border border-border bg-card/70 p-4",
-        accent && "bg-gradient-to-br from-primary/10 to-transparent",
+        "glass ring-gradient relative overflow-hidden rounded-xl p-4",
+        accent && "!bg-primary/10",
       )}
     >
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>

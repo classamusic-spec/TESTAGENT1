@@ -43,7 +43,7 @@ export function AssetSelect({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-56 items-center gap-2.5 rounded-xl border border-border bg-card/80 px-3 py-2 text-left transition-colors hover:border-primary/40"
+        className="glass flex w-56 items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors hover:border-primary/40"
       >
         <TokenAvatar symbol={current.symbol} />
         <span className="flex-1 leading-tight">
@@ -54,7 +54,7 @@ export function AssetSelect({
       </button>
 
       {open && (
-        <div className="ring-gradient absolute right-0 z-50 mt-2 max-h-80 w-64 overflow-y-auto rounded-xl border border-border bg-card/95 p-1.5 shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <div className="glass-strong ring-gradient absolute right-0 z-50 mt-2 max-h-80 w-64 overflow-y-auto rounded-xl p-1.5 shadow-2xl shadow-black/40">
           {TRADEABLE_ASSETS.map((asset) => (
             <button
               key={asset.pair}

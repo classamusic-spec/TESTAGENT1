@@ -7,6 +7,7 @@ import type { TradingPair } from "@kronos/shared";
 
 import { AssetSelect } from "@/components/dashboard/asset-select";
 import { ForecastSummary } from "@/components/dashboard/forecast-summary";
+import { PaperPanel } from "@/components/dashboard/paper-panel";
 import { RiskPanel } from "@/components/dashboard/risk-panel";
 import { StatCards } from "@/components/dashboard/stat-cards";
 import { AuroraBackground } from "@/components/ui/aurora-background";
@@ -87,6 +88,8 @@ export default function DashboardPage() {
             <RiskPanel />
           </div>
         </div>
+
+        {data && <PaperPanel candles={data.candles} />}
 
         {data && (
           <Card>
