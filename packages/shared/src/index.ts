@@ -64,6 +64,16 @@ export interface Forecast {
   pUp: number;
 }
 
+/**
+ * Request body for the forecast service. `candles` must contain closed candles
+ * only (invariant 1); the service rejects any in-progress candle.
+ */
+export interface ForecastRequest {
+  interval: CandleInterval;
+  horizon: number;
+  candles: Candle[];
+}
+
 // --- Signals ----------------------------------------------------------------
 
 export type SignalSide = "long" | "short" | "flat";
