@@ -1,12 +1,14 @@
 "use client";
 
-import { Lock, ShieldCheck, Zap } from "lucide-react";
+import { Lock, OctagonX, ShieldCheck, Zap } from "lucide-react";
 import { useState } from "react";
 
 import { GoLiveDialog } from "@/components/dashboard/go-live-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { haltTrading, resumeTrading } from "@/lib/control";
 import { useSessionKey } from "@/lib/session-key-store";
+import { useSession } from "@/lib/session-store";
 import { useTradingMode } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -24,8 +26,16 @@ export function RiskPanel() {
   const mode = useTradingMode((s) => s.mode);
   const setMode = useTradingMode((s) => s.setMode);
   const hasSessionKey = useSessionKey((s) => s.grant !== null);
+  const token = useSession((s) => s.token);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [halted, setHalted] = useState(false);
   const isLive = mode === "live";
+
+  async function toggleHalt() {
+    if (!token) return;
+    const ok = halted ? await resumeTrading(token) : await haltTrading(token);
+    if (ok) setHalted(!halted);
+  }
 
   return (
     <Card>
@@ -80,6 +90,21 @@ export function RiskPanel() {
             Enable live trading
           </Button>
         )}
+        <button
+          type="button"
+          onClick={toggleHalt}
+          disabled={!token}
+          className={cn(
+            "flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50",
+            halted
+              ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+              : "border-danger/40 bg-danger/10 text-danger hover:bg-danger/20",
+          )}
+          title={token ? undefined : "Sign in to use the kill switch"}
+        >
+          <OctagonX className="h-4 w-4" />
+          {halted ? "Resume trading" : "Emergency stop"}
+        </button>
       </CardContent>
 
       <GoLiveDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />

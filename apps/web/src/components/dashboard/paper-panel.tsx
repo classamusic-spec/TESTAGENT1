@@ -32,6 +32,13 @@ export function PaperPanel({ candles }: { candles: Candle[] }) {
   const positionSide =
     run.positionNotional > 1 ? "Long" : run.positionNotional < -1 ? "Short" : "Flat";
 
+  // Daily-return tracker: a reference metric, not a hard target. Hourly candles,
+  // so days ~= bars / 24. Goal line is for reference only.
+  const DAILY_GOAL = 1.0;
+  const days = Math.max(1, (run.equityCurve.length - 1) / 24);
+  const avgDaily = (Math.pow(run.equity / 10_000, 1 / days) - 1) * 100;
+  const meetsGoal = avgDaily >= DAILY_GOAL;
+
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between">
@@ -56,6 +63,17 @@ export function PaperPanel({ candles }: { candles: Candle[] }) {
           />
           <Metric label="Position" value={positionSide} />
           <Metric label="Fills" value={`${run.trades.length}`} />
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg bg-secondary/40 px-3 py-2 text-sm">
+          <span className="text-muted-foreground">Avg daily return</span>
+          <span className="font-mono">
+            <span className={cn("font-semibold", meetsGoal ? "text-primary" : "text-foreground")}>
+              {avgDaily >= 0 ? "+" : ""}
+              {avgDaily.toFixed(2)}%
+            </span>
+            <span className="text-muted-foreground"> / {DAILY_GOAL.toFixed(2)}% goal</span>
+          </span>
         </div>
 
         <div className="h-[140px] w-full">
