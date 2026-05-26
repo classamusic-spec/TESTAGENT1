@@ -7,6 +7,7 @@ import type { TradingPair } from "@kronos/shared";
 
 import { AssetSelect } from "@/components/dashboard/asset-select";
 import { ForecastSummary } from "@/components/dashboard/forecast-summary";
+import { NetworkBadge } from "@/components/dashboard/network-badge";
 import { PaperPanel } from "@/components/dashboard/paper-panel";
 import { RiskPanel } from "@/components/dashboard/risk-panel";
 import { StatCards } from "@/components/dashboard/stat-cards";
@@ -38,6 +39,7 @@ export default function DashboardPage() {
             Kronos Trader
           </a>
           <div className="flex items-center gap-3">
+            <NetworkBadge />
             <AssetSelect selected={pair} onSelect={setPair} />
             <ConnectWalletButton />
           </div>

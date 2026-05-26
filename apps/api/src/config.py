@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     nonce_ttl_seconds: int = 600
     session_ttl_seconds: int = 86_400
 
+    # DEX execution (testnet only during development; Base Sepolia = 84532).
+    default_chain_id: int = 84532
+    base_sepolia_rpc_url: str = "https://sepolia.base.org"
+    swap_slippage_bps: int = 50
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
