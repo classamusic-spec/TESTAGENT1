@@ -1,0 +1,21 @@
+{
+  "name": "kronos-trader",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Non-custodial crypto trading web app powered by the Kronos foundation model.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @kronos/web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4"
+  }
+}
