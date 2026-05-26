@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from src.backtest.costs import CostModel
+from src.backtest.deflated_sharpe import deflated_sharpe_ratio
 from src.backtest.engine import BacktestResult, ForecastFn, run_backtest
 from src.backtest.folds import make_walk_forward_folds
 from src.data.ohlcv import Candle
@@ -23,6 +24,10 @@ class SweepResult:
     results: list[tuple[SignalConfig, BacktestResult]]
     best_config: SignalConfig
     best_result: BacktestResult
+    n_trials: int = 1
+    # Probability the winner's edge survives the multiple-testing correction.
+    # Low values (< ~0.5) flag a likely overfit grid search.
+    deflated_sharpe: float = float("nan")
 
 
 def default_grid() -> list[SignalConfig]:
@@ -57,4 +62,13 @@ def sweep_thresholds(
         results.append((config, result))
 
     best_config, best_result = max(results, key=lambda pair: _objective(pair[1]))
-    return SweepResult(results=results, best_config=best_config, best_result=best_result)
+
+    trial_sharpes = [result.sharpe for _, result in results]
+    dsr = deflated_sharpe_ratio(best_result.sharpe, trial_sharpes, best_result.n_bars)
+    return SweepResult(
+        results=results,
+        best_config=best_config,
+        best_result=best_result,
+        n_trials=len(results),
+        deflated_sharpe=dsr,
+    )

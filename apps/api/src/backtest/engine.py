@@ -10,6 +10,7 @@ from src.backtest.costs import CostModel
 from src.backtest.folds import Fold, collect_test_indices
 from src.data.ohlcv import Candle
 from src.signals.policy import SignalConfig, derive_signal, position_for
+from src.signals.sizing import SizingConfig, position_fraction
 
 # Given the closed candles available up to and including a decision bar, return
 # the forecast's directional probability (p_up) for the next bar.
@@ -54,12 +55,17 @@ def run_backtest(
     forecast_fn: ForecastFn,
     cost_model: CostModel,
     signal_config: SignalConfig | None = None,
+    sizing_config: SizingConfig | None = None,
 ) -> BacktestResult:
     """Run a walk-forward backtest.
 
     At each test bar t the forecaster sees only candles[: t + 1] (no look-ahead,
     invariants 1 and 8). The position is held from t to t+1 and the realized
     return is booked; costs are charged whenever the position changes.
+
+    With `sizing_config`, the position is sized continuously by confidence and
+    volatility (Kelly-capped, vol-targeted) within the signal's direction;
+    otherwise it is a discrete +1 / -1 / 0.
     """
     config = signal_config or SignalConfig()
     decision_points = [t for t in collect_test_indices(folds) if t + 1 < len(candles)]
@@ -76,7 +82,13 @@ def run_backtest(
     for t in decision_points:
         context = candles[: t + 1]  # closed candles up to and including bar t
         p_up = forecast_fn(context)
-        position = position_for(derive_signal(p_up, config))
+        side = derive_signal(p_up, config)
+        if sizing_config is None:
+            position = position_for(side)
+        elif side == "flat":
+            position = 0.0  # honor the threshold's flat band before sizing
+        else:
+            position = position_fraction(p_up, context, sizing_config)
 
         cost = 0.0
         if position != prev_position:
