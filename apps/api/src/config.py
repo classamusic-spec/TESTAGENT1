@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     base_sepolia_rpc_url: str = "https://sepolia.base.org"
     swap_slippage_bps: int = 50
 
+    # Smart-account session key (scoped, delegated; testnet only). The signer key
+    # is a secret and must come from the environment — never committed.
+    session_signer_key: str = ""
+    smart_account_address: str = ""
+    bundler_rpc_url: str = ""
+    session_spend_cap: int = 500_000_000  # smallest units of the spend token
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

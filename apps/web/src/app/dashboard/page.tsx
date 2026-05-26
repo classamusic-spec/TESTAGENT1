@@ -10,6 +10,7 @@ import { ForecastSummary } from "@/components/dashboard/forecast-summary";
 import { NetworkBadge } from "@/components/dashboard/network-badge";
 import { PaperPanel } from "@/components/dashboard/paper-panel";
 import { RiskPanel } from "@/components/dashboard/risk-panel";
+import { SessionKeyPanel } from "@/components/dashboard/session-key-panel";
 import { StatCards } from "@/components/dashboard/stat-cards";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +89,7 @@ export default function DashboardPage() {
           <div className="space-y-6">
             {data && <ForecastSummary forecast={data.forecast} />}
             <RiskPanel />
+            <SessionKeyPanel />
           </div>
         </div>
 
