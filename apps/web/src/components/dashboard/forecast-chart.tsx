@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import {
   ColorType,
   LineStyle,
@@ -10,6 +11,8 @@ import {
 import { useEffect, useRef } from "react";
 
 import type { Candle, Forecast } from "@kronos/shared";
+
+import { EASE_OUT } from "@/lib/motion";
 
 const PRIMARY = "#22d3a6";
 const DANGER = "#ef4444";
@@ -109,5 +112,14 @@ export function ForecastChart({
     };
   }, [candles, forecast]);
 
-  return <div ref={containerRef} className="h-full w-full" />;
+  return (
+    <motion.div
+      className="h-full w-full"
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.6, ease: EASE_OUT }}
+    >
+      <div ref={containerRef} className="h-full w-full" />
+    </motion.div>
+  );
 }

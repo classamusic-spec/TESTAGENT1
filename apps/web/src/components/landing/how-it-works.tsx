@@ -1,3 +1,9 @@
+"use client";
+
+import { motion } from "framer-motion";
+
+import { staggerContainer, staggerItem } from "@/lib/motion";
+
 const steps = [
   {
     step: "01",
@@ -26,15 +32,21 @@ export function HowItWorks() {
             From wallet to forecast to (optional) live execution — on your terms.
           </p>
         </div>
-        <div className="mt-12 grid gap-8 md:grid-cols-3">
+        <motion.div
+          className="mt-12 grid gap-8 md:grid-cols-3"
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-80px" }}
+        >
           {steps.map((item) => (
-            <div key={item.step} className="relative">
+            <motion.div key={item.step} variants={staggerItem} className="relative">
               <span className="font-mono text-5xl font-bold text-primary/20">{item.step}</span>
               <h3 className="mt-3 text-lg font-semibold">{item.title}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{item.body}</p>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

@@ -14,12 +14,8 @@ export default function HomePage() {
       <main className="flex-1">
         <Hero />
         <SupportedAssets />
-        <Reveal>
-          <Features />
-        </Reveal>
-        <Reveal>
-          <HowItWorks />
-        </Reveal>
+        <Features />
+        <HowItWorks />
         <Reveal>
           <Safety />
         </Reveal>

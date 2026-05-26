@@ -1,6 +1,10 @@
+"use client";
+
+import { motion } from "framer-motion";
 import { BrainCircuit, LineChart, Lock, Replace } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { staggerContainer, staggerItem } from "@/lib/motion";
 
 const features = [
   {
@@ -36,24 +40,29 @@ export function Features() {
           Every design choice protects you from the failure modes that wreck most trading bots.
         </p>
       </div>
-      <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <motion.div
+        className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-80px" }}
+      >
         {features.map((feature) => (
-          <Card
-            key={feature.title}
-            className="ring-gradient group transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5"
-          >
-            <CardHeader>
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary ring-1 ring-inset ring-primary/20 transition-transform duration-300 group-hover:scale-110">
-                <feature.icon className="h-5 w-5" />
-              </span>
-              <CardTitle className="mt-2 text-base">{feature.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{feature.body}</p>
-            </CardContent>
-          </Card>
+          <motion.div key={feature.title} variants={staggerItem} className="h-full">
+            <Card className="ring-gradient group h-full transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5">
+              <CardHeader>
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary ring-1 ring-inset ring-primary/20 transition-transform duration-300 group-hover:scale-110">
+                  <feature.icon className="h-5 w-5" />
+                </span>
+                <CardTitle className="mt-2 text-base">{feature.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">{feature.body}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </section>
   );
 }
