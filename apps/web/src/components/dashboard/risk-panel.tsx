@@ -6,6 +6,7 @@ import { useState } from "react";
 import { GoLiveDialog } from "@/components/dashboard/go-live-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSessionKey } from "@/lib/session-key-store";
 import { useTradingMode } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ const LIMITS = [
 export function RiskPanel() {
   const mode = useTradingMode((s) => s.mode);
   const setMode = useTradingMode((s) => s.setMode);
+  const hasSessionKey = useSessionKey((s) => s.grant !== null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const isLive = mode === "live";
 
@@ -59,6 +61,14 @@ export function RiskPanel() {
           <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           Limits are set by you and cannot be changed automatically by the bot.
         </p>
+
+        {isLive && (
+          <p className="rounded-md bg-secondary/60 p-3 text-xs text-muted-foreground">
+            {hasSessionKey
+              ? "Live execution armed: long/flat spot swaps on Base Sepolia via your session key."
+              : "Grant a session key below to enable live execution."}
+          </p>
+        )}
 
         {isLive ? (
           <Button variant="outline" className="w-full" onClick={() => setMode("paper")}>
