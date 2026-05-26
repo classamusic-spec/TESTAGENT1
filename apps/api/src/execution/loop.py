@@ -8,6 +8,8 @@ from loguru import logger
 
 from src.execution.models import Fill, Portfolio
 from src.execution.paper_broker import PaperBroker
+from src.ops.alerts import alerts
+from src.ops.control import control
 from src.risk.manager import RiskManager
 from src.signals.policy import SignalConfig, SignalSide, derive_signal, position_for
 
@@ -49,8 +51,18 @@ class PaperSession:
         equity_before = self.portfolio.equity(prices)
         self.peak_equity = max(self.peak_equity, equity_before)
 
-        decision = self.risk.evaluate(desired, equity_before, self.peak_equity)
-        fill = self.broker.rebalance(self.portfolio, pair, decision.approved_notional, mark_price, ts)
+        # Kill switch: flatten and stop opening positions (the safe direction).
+        if control.halted:
+            decision = self.risk.evaluate(0.0, equity_before, self.peak_equity)
+        else:
+            decision = self.risk.evaluate(desired, equity_before, self.peak_equity)
+        target_notional = 0.0 if control.halted else decision.approved_notional
+        fill = self.broker.rebalance(self.portfolio, pair, target_notional, mark_price, ts)
+
+        halted = control.halted or decision.halted
+        reason = "kill switch" if control.halted else decision.reason
+        if decision.halted and decision.reason and "drawdown" in decision.reason:
+            alerts.emit("drawdown_halt", f"{pair}: {decision.reason}", severity="critical")
 
         equity_after = self.portfolio.equity(prices)
         drawdown = (self.peak_equity - equity_after) / self.peak_equity if self.peak_equity > 0 else 0.0
@@ -62,11 +74,11 @@ class PaperSession:
             pair,
             p_up,
             side,
-            decision.approved_notional,
+            target_notional,
             fill is not None,
             equity_after,
             drawdown,
-            decision.halted,
+            halted,
         )
 
         return StepResult(
@@ -74,10 +86,10 @@ class PaperSession:
             pair=pair,
             p_up=p_up,
             signal=side,
-            target_notional=decision.approved_notional,
+            target_notional=target_notional,
             fill=fill,
             equity=equity_after,
             drawdown=drawdown,
-            halted=decision.halted,
-            reason=decision.reason,
+            halted=halted,
+            reason=reason,
         )

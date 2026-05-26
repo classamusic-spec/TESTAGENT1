@@ -18,6 +18,8 @@ from src.accounts.manager import SessionAccount
 from src.dex.swapper import DexSwapper
 from src.dex.tokens import resolve_pair
 from src.execution.models import Fill
+from src.ops.alerts import alerts
+from src.ops.control import control
 from src.risk.manager import RiskManager
 from src.signals.policy import SignalConfig, SignalSide, derive_signal
 
@@ -69,12 +71,15 @@ class LiveExecutor:
     def step(self, pair: str, p_up: float, mark_price: float, equity: float, now_ms: int) -> LiveStepResult:
         raw = derive_signal(p_up, self.signal_config)
         # Spot DEX: long or flat only. A short signal means "hold no position".
-        go_long = raw == "long"
+        # Kill switch forces flat (the safe direction).
+        go_long = raw == "long" and not control.halted
         desired = self.risk.limits.max_position_size if go_long else 0.0
 
         self.peak_equity = max(self.peak_equity, equity)
         decision = self.risk.evaluate(desired, equity, self.peak_equity)
         target = max(0.0, decision.approved_notional)  # never short on spot
+        if decision.halted and decision.reason and "drawdown" in decision.reason:
+            alerts.emit("drawdown_halt", f"{pair}: {decision.reason}", severity="critical")
 
         delta = target - self.held_notional
         effective: SignalSide = "long" if target > 0 else "flat"

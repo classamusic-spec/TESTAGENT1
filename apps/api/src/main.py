@@ -12,6 +12,7 @@ from src.auth.router import router as auth_router
 from src.config import settings
 from src.db.session import init_db
 from src.forecast.router import router as forecast_router
+from src.ops.router import router as ops_router
 
 
 @asynccontextmanager
@@ -32,6 +33,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(forecast_router)
+app.include_router(ops_router)
 
 
 @app.get("/health")

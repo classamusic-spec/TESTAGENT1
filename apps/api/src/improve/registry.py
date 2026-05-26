@@ -42,5 +42,12 @@ class ModelRegistry:
         previous = self.current_live()
         if previous is not None and previous.version != version:
             previous.status = CheckpointStatus.ROLLED_BACK
+            from src.ops.alerts import alerts  # local import to avoid a cycle
+
+            alerts.emit(
+                "model_rollback",
+                f"checkpoint {previous.version} rolled back; {version} now live",
+                severity="critical",
+            )
         self.checkpoints[version].status = CheckpointStatus.LIVE
         self.live_version = version
