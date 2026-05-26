@@ -35,7 +35,7 @@ export default function DashboardPage() {
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/60 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between gap-4">
           <a href="/" className="flex items-center gap-2 font-semibold">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary ring-1 ring-inset ring-primary/30">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-primary text-primary-foreground shadow-[0_2px_12px_-2px_hsl(158_84%_45%/0.6)]">
               <Activity className="h-5 w-5" />
             </span>
             Kronos Trader
@@ -69,7 +69,7 @@ export default function DashboardPage() {
         {data && <StatCards candles={data.candles} forecast={data.forecast} />}
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="ring-gradient lg:col-span-2">
+          <Card className="ring-gradient card-glow lg:col-span-2">
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle className="font-mono text-base">{pair}</CardTitle>
               <span className="text-xs text-muted-foreground">

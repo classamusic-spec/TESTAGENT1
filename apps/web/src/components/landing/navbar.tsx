@@ -15,7 +15,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-lg">
       <div className="container flex h-16 items-center justify-between">
         <a href="#" className="flex items-center gap-2 font-semibold">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/15 text-primary">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-primary text-primary-foreground shadow-[0_2px_12px_-2px_hsl(158_84%_45%/0.6)]">
             <Activity className="h-5 w-5" />
           </span>
           Kronos Trader

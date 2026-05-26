@@ -36,6 +36,17 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* Tabular figures everywhere financial — a premium, no-jitter number feel. */
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "ss01" 1;
+  }
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
   }
   ::selection {
     background: hsl(var(--primary) / 0.25);
@@ -63,6 +74,54 @@
 @layer utilities {
   .text-gradient {
     @apply bg-gradient-to-r from-primary via-emerald-300 to-teal-200 bg-clip-text text-transparent;
+  }
+
+  /* Slowly sweeping gradient on hero accent text. */
+  .text-shimmer {
+    background-image: linear-gradient(
+      110deg,
+      hsl(158 84% 52%),
+      hsl(160 90% 72%),
+      hsl(190 95% 72%),
+      hsl(158 84% 52%)
+    );
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: text-shimmer 7s linear infinite;
+  }
+
+  /* Soft radial glow behind hero / chart surfaces. */
+  .card-glow {
+    position: relative;
+  }
+  .card-glow::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    box-shadow: 0 30px 90px -40px hsl(158 84% 45% / 0.55);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* Sheen that sweeps across a primary button on hover. */
+  .sheen {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.25) 50%, transparent 70%);
+    transform: translateX(-130%);
+    transition: transform 0.7s ease;
+  }
+  .sheen:hover::after {
+    transform: translateX(130%);
   }
 
   /* Frosted glass surface: translucent fill, blur, hairline + top highlight. */
@@ -147,6 +206,12 @@
 
   .marquee-track {
     animation: marquee 32s linear infinite;
+  }
+}
+
+@keyframes text-shimmer {
+  to {
+    background-position: -220% 0;
   }
 }
 

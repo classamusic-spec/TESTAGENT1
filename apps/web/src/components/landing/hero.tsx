@@ -30,8 +30,8 @@ export function Hero() {
             <ShieldCheck className="h-3.5 w-3.5" />
             Non-custodial · Paper trading by default
           </Badge>
-          <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            Trade crypto with a <span className="text-gradient">forecasting model</span>, not a black box.
+          <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl lg:text-[4rem] lg:leading-[1.05]">
+            Trade crypto with a <span className="text-shimmer">forecasting model</span>, not a black box.
           </h1>
           <p className="mt-6 max-w-xl text-pretty text-lg text-muted-foreground">
             Kronos generates probabilistic OHLCV forecasts, derives signals, and executes on-chain
@@ -55,7 +55,7 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
         >
-          <Card className="ring-gradient shadow-2xl shadow-primary/10">
+          <Card className="ring-gradient card-glow shadow-2xl shadow-primary/10">
             <CardHeader className="flex-row items-center justify-between">
               <div>
                 <CardTitle className="font-mono text-base">ETH / USDC</CardTitle>
