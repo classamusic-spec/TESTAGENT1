@@ -1,8 +1,9 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Wallet } from "lucide-react";
+import { ShieldCheck, Wallet } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { shortenAddress } from "@/lib/utils";
 
@@ -14,9 +15,22 @@ import { shortenAddress } from "@/lib/utils";
 export function ConnectWalletButton({ size = "default" as const }: { size?: "default" | "lg" }) {
   return (
     <ConnectButton.Custom>
-      {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
-        const ready = mounted;
-        const connected = ready && account && chain;
+      {({
+        account,
+        chain,
+        authenticationStatus,
+        openAccountModal,
+        openChainModal,
+        openConnectModal,
+        mounted,
+      }) => {
+        const ready = mounted && authenticationStatus !== "loading";
+        const authenticated = authenticationStatus === "authenticated";
+        const connected =
+          ready &&
+          account &&
+          chain &&
+          (!authenticationStatus || authenticated);
 
         return (
           <div
@@ -28,7 +42,7 @@ export function ConnectWalletButton({ size = "default" as const }: { size?: "def
                 return (
                   <Button size={size} onClick={openConnectModal}>
                     <Wallet className="h-4 w-4" />
-                    Connect Wallet
+                    {account ? "Sign in" : "Connect Wallet"}
                   </Button>
                 );
               }
@@ -43,6 +57,10 @@ export function ConnectWalletButton({ size = "default" as const }: { size?: "def
 
               return (
                 <div className="flex items-center gap-2">
+                  <Badge variant="primary" className="hidden sm:inline-flex">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Owner
+                  </Badge>
                   <Button size="sm" variant="outline" onClick={openChainModal}>
                     {chain.name}
                   </Button>

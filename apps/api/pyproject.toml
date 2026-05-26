@@ -9,6 +9,9 @@ dependencies = [
     "pydantic>=2.8.0",
     "pydantic-settings>=2.4.0",
     "loguru>=0.7.2",
+    # SIWE auth: eth-account verifies signatures, PyJWT mints session tokens.
+    "eth-account>=0.13.0",
+    "pyjwt>=2.9.0",
 ]
 
 [project.optional-dependencies]
