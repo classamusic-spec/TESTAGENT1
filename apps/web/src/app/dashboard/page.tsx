@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { TradingPair } from "@kronos/shared";
 
 import { AssetSelect } from "@/components/dashboard/asset-select";
+import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { ForecastSummary } from "@/components/dashboard/forecast-summary";
 import { ModelStatusPanel } from "@/components/dashboard/model-status-panel";
 import { NetworkBadge } from "@/components/dashboard/network-badge";
@@ -34,12 +35,15 @@ export default function DashboardPage() {
 
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/60 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between gap-4">
-          <a href="/" className="flex items-center gap-2 font-semibold">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-primary text-primary-foreground shadow-[0_2px_12px_-2px_hsl(158_84%_45%/0.6)]">
-              <Activity className="h-5 w-5" />
-            </span>
-            Kronos Trader
-          </a>
+          <div className="flex items-center gap-6">
+            <a href="/" className="flex items-center gap-2 font-semibold">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-primary text-primary-foreground shadow-[0_2px_12px_-2px_hsl(158_84%_45%/0.6)]">
+                <Activity className="h-5 w-5" />
+              </span>
+              Kronos Trader
+            </a>
+            <DashboardNav />
+          </div>
           <div className="flex items-center gap-3">
             <NetworkBadge />
             <AssetSelect selected={pair} onSelect={setPair} />

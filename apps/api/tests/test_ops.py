@@ -8,6 +8,7 @@ from src.execution.models import Portfolio
 from src.execution.paper_broker import PaperBroker
 from src.ops.alerts import alerts
 from src.ops.control import control
+from src.ops.notify import NotificationPrefs, notifier
 from src.risk.manager import RiskLimits, RiskManager
 
 PAIR = "ETH/USDC"
@@ -17,9 +18,13 @@ PAIR = "ETH/USDC"
 def _reset_ops():
     control.resume()
     alerts.clear()
+    notifier.prefs = NotificationPrefs()
+    notifier.sent.clear()
     yield
     control.resume()
     alerts.clear()
+    notifier.prefs = NotificationPrefs()
+    notifier.sent.clear()
 
 
 def _session() -> PaperSession:
@@ -67,3 +72,31 @@ def test_alert_sink_records_recent() -> None:
     recent = alerts.recent()
     assert recent[0].kind == "test"
     assert recent[0].message == "hello"
+
+
+def test_notifier_silent_when_no_channels_enabled() -> None:
+    alerts.emit("drawdown_halt", "halt", severity="critical")
+    assert notifier.sent == []
+
+
+def test_notifier_delivers_to_enabled_channels() -> None:
+    notifier.prefs.email = "owner@example.com"
+    notifier.prefs.email_enabled = True
+    notifier.prefs.push_enabled = True
+    alerts.emit("drawdown_halt", "20% drawdown", severity="critical")
+    channels = {n.channel for n in notifier.sent}
+    assert channels == {"email", "push"}
+    assert notifier.sent[0].target == "owner@example.com"
+
+
+def test_notifier_respects_event_opt_out() -> None:
+    notifier.prefs.push_enabled = True
+    notifier.prefs.events["trade_fill"] = False
+    alerts.emit("trade_fill", "bought ETH", severity="info")
+    assert notifier.sent == []
+
+
+def test_notifier_unknown_kind_defaults_to_delivered() -> None:
+    notifier.prefs.push_enabled = True
+    alerts.emit("brand_new_kind", "hi", severity="info")
+    assert len(notifier.sent) == 1

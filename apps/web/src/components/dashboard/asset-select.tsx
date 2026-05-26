@@ -4,6 +4,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { TRADEABLE_ASSETS, type TradingPair } from "@kronos/shared";
 
+import { useAssetPrefs } from "@/lib/asset-prefs";
 import { cn } from "@/lib/utils";
 
 export function TokenAvatar({ symbol, className }: { symbol: string; className?: string }) {
@@ -28,6 +29,7 @@ export function AssetSelect({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const disabled = useAssetPrefs((s) => s.disabled);
   const current = TRADEABLE_ASSETS.find((a) => a.pair === selected) ?? TRADEABLE_ASSETS[0]!;
 
   useEffect(() => {
@@ -73,6 +75,11 @@ export function AssetSelect({
                 <span className="block text-sm font-medium">{asset.symbol}/USDC</span>
                 <span className="block text-xs text-muted-foreground">{asset.name}</span>
               </span>
+              {disabled[asset.pair] && (
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Paused
+                </span>
+              )}
               {asset.pair === selected && <Check className="h-4 w-4 text-primary" />}
             </button>
           ))}

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from src.auth.router import get_current_owner
 from src.ops.alerts import alerts
 from src.ops.control import control
+from src.ops.notify import notifier
 
 router = APIRouter(prefix="/control", tags=["ops"])
 
@@ -47,3 +48,31 @@ def resume(_owner: OwnerDep) -> ControlStatus:
 @router.get("/alerts")
 def recent_alerts(_owner: OwnerDep, limit: int = 50) -> list[dict]:
     return [a.__dict__ for a in alerts.recent(limit)]
+
+
+class NotificationPrefsModel(BaseModel):
+    email: str = ""
+    email_enabled: bool = False
+    push_enabled: bool = False
+    events: dict[str, bool] | None = None
+
+
+@router.get("/notifications", response_model=NotificationPrefsModel)
+def get_notifications(_owner: OwnerDep) -> NotificationPrefsModel:
+    p = notifier.prefs
+    return NotificationPrefsModel(
+        email=p.email,
+        email_enabled=p.email_enabled,
+        push_enabled=p.push_enabled,
+        events=p.events,
+    )
+
+
+@router.put("/notifications", response_model=NotificationPrefsModel)
+def update_notifications(payload: NotificationPrefsModel, _owner: OwnerDep) -> NotificationPrefsModel:
+    notifier.prefs.email = payload.email
+    notifier.prefs.email_enabled = payload.email_enabled
+    notifier.prefs.push_enabled = payload.push_enabled
+    if payload.events is not None:
+        notifier.prefs.events.update(payload.events)
+    return get_notifications(_owner)

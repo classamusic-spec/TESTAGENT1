@@ -8,6 +8,8 @@ from dataclasses import dataclass
 
 from loguru import logger
 
+from src.ops.notify import notifier
+
 
 @dataclass(frozen=True)
 class Alert:
@@ -25,6 +27,7 @@ class AlertSink:
         alert = Alert(ts=int(time.time() * 1000), kind=kind, severity=severity, message=message)
         self._recent.appendleft(alert)
         logger.bind(alert=True).warning("ALERT [{}] {}: {}", severity, kind, message)
+        notifier.notify(kind, message, severity)
         return alert
 
     def recent(self, limit: int = 50) -> list[Alert]:
