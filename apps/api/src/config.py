@@ -8,7 +8,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    database_url: str = "postgresql+psycopg://kronos:kronos@localhost:5432/kronos"
+    # Persistence. SQLite by default for local dev; set DATABASE_URL to a
+    # Postgres/TimescaleDB URL in production.
+    database_url: str = "sqlite:///./kronos.db"
     redis_url: str = "redis://localhost:6379/0"
     api_secret_key: str = "change_me_to_a_long_random_string"
     cors_origins: str = "http://localhost:3000"

@@ -40,3 +40,8 @@ npm-debug.log*
 coverage/
 .coverage
 htmlcov/
+
+# Local SQLite dev databases
+*.db
+*.db-journal
+*.sqlite

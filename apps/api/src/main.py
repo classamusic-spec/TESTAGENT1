@@ -1,19 +1,26 @@
-"""Kronos Trader API entrypoint.
-
-Phase 1 ships only a health check and CORS wiring. Auth, data pipeline, and
-trade execution arrive in later phases. Execution and risk code (invariant 4)
-must live under their own tested modules and is intentionally absent here.
-"""
+"""Kronos Trader API entrypoint."""
 
 from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.auth.router import router as auth_router
 from src.config import settings
+from src.db.session import init_db
+from src.forecast.router import router as forecast_router
 
-app = FastAPI(title="Kronos Trader API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    init_db()
+    yield
+
+
+app = FastAPI(title="Kronos Trader API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,6 +31,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(forecast_router)
 
 
 @app.get("/health")
