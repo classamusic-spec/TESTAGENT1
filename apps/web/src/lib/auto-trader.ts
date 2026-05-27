@@ -34,6 +34,7 @@ export interface AutoConfig {
   trailing: boolean;
   cooldownBars: number; // bars to wait after an exit before opening a fresh position
   maxDailyLossPct: number | null; // protection: halt fresh entries for the day past this loss
+  entryVolBand: [number, number] | null; // [min, max] ATR%: skip dead/chaotic markets
   feeBps: number;
   slippageBps: number;
 }
@@ -54,6 +55,7 @@ export const DEFAULT_AUTO_CONFIG: AutoConfig = {
   trailing: false,
   cooldownBars: 1,
   maxDailyLossPct: 0.05,
+  entryVolBand: null,
   feeBps: 10,
   slippageBps: 5,
 };
@@ -75,6 +77,7 @@ export const RISK_PRESETS: Record<RiskLevel, Partial<AutoConfig> & { exposure: n
     trailing: false,
     cooldownBars: 3,
     maxDailyLossPct: 0.03,
+    entryVolBand: [0.002, 0.05],
   },
   balanced: {
     exposure: 0.5,
@@ -87,6 +90,7 @@ export const RISK_PRESETS: Record<RiskLevel, Partial<AutoConfig> & { exposure: n
     trailing: false,
     cooldownBars: 1,
     maxDailyLossPct: 0.05,
+    entryVolBand: [0.0015, 0.07],
   },
   aggressive: {
     exposure: 0.85,
@@ -99,6 +103,7 @@ export const RISK_PRESETS: Record<RiskLevel, Partial<AutoConfig> & { exposure: n
     trailing: true,
     cooldownBars: 0,
     maxDailyLossPct: 0.08,
+    entryVolBand: [0.001, 0.12],
   },
 };
 
@@ -287,6 +292,11 @@ export function runAutoStrategy(candles: Candle[], config: Partial<AutoConfig> =
     const dailyLocked =
       cfg.maxDailyLossPct != null && dayStart > 0 && eqNow <= dayStart * (1 - cfg.maxDailyLossPct);
 
+    // Volatility filter: skip fresh entries in dead or chaotic markets.
+    const atrPct = mark > 0 ? (atrSeries[i] ?? 0) / mark : 0;
+    const volBlocked =
+      cfg.entryVolBand != null && (atrPct < cfg.entryVolBand[0] || atrPct > cfg.entryVolBand[1]);
+
     const sig = signalFor(pUp, cfg);
     let event: TradeReason | null = null;
 
@@ -324,8 +334,8 @@ export function runAutoStrategy(candles: Candle[], config: Partial<AutoConfig> =
           close(mark, time, i, "flip");
           open(sig as "long" | "short", mark, time, i, true);
           event = "flip";
-        } else if (i >= cooldownUntil && !dailyLocked) {
-          // fresh entry from flat, once cooldown has elapsed and not daily-locked
+        } else if (i >= cooldownUntil && !dailyLocked && !volBlocked) {
+          // fresh entry from flat: cooldown elapsed, not daily-locked, vol in band
           open(sig as "long" | "short", mark, time, i, false);
           event = sigStr === "long" ? "open_long" : "open_short";
         }

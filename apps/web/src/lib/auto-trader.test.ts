@@ -132,6 +132,17 @@ describe("runAutoStrategy", () => {
     expect(opens(protectedRun)).toBeLessThanOrEqual(opens(unprotectedRun));
   });
 
+  it("entry volatility band suppresses out-of-band entries", () => {
+    const up = candles(Array.from({ length: 60 }, (_, i) => 100 * 1.01 ** i));
+    const opens = (r: ReturnType<typeof runAutoStrategy>) =>
+      r.trades.filter((t) => t.reason === "open_long").length;
+    const noBand = runAutoStrategy(up, { allowShort: false, entryVolBand: null });
+    // An impossibly tight max band blocks every entry.
+    const tightBand = runAutoStrategy(up, { allowShort: false, entryVolBand: [0, 0.00001] });
+    expect(opens(tightBand)).toBe(0);
+    expect(opens(tightBand)).toBeLessThanOrEqual(opens(noBand));
+  });
+
   it("reports win rate over closed trades", () => {
     const run = runAutoStrategy(candles(Array.from({ length: 60 }, (_, i) => 100 + 8 * Math.sin(i / 3))));
     expect(run.summary.closedTrades).toBeGreaterThanOrEqual(0);

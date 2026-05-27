@@ -9,6 +9,9 @@ from typing import Callable, Sequence
 from src.backtest.costs import CostModel
 from src.backtest.folds import Fold, collect_test_indices
 from src.data.ohlcv import Candle
+from src.signals.factors import FactorConfig
+from src.signals.filters import SignalFilter
+from src.signals.pipeline import decide
 from src.signals.policy import SignalConfig, derive_signal, position_for
 from src.signals.sizing import SizingConfig, position_fraction
 
@@ -56,6 +59,8 @@ def run_backtest(
     cost_model: CostModel,
     signal_config: SignalConfig | None = None,
     sizing_config: SizingConfig | None = None,
+    factor_config: FactorConfig | None = None,
+    filters: list[SignalFilter] | None = None,
 ) -> BacktestResult:
     """Run a walk-forward backtest.
 
@@ -82,7 +87,12 @@ def run_backtest(
     for t in decision_points:
         context = candles[: t + 1]  # closed candles up to and including bar t
         p_up = forecast_fn(context)
-        side = derive_signal(p_up, config)
+        if factor_config is not None or filters is not None:
+            side = decide(
+                context, p_up, signal_config=config, factor_config=factor_config, filters=filters
+            ).side
+        else:
+            side = derive_signal(p_up, config)
         if sizing_config is None:
             position = position_for(side)
         elif side == "flat":
