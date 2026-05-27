@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import dynamic from "next/dynamic";
 import { Activity, FlaskConical } from "lucide-react";
 import { useState } from "react";
 import type { TradingPair } from "@kronos/shared";
@@ -9,23 +8,19 @@ import type { TradingPair } from "@kronos/shared";
 import { AssetSelect } from "@/components/dashboard/asset-select";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
 import { ForecastSummary } from "@/components/dashboard/forecast-summary";
+import { MarketTerminal } from "@/components/dashboard/market-terminal";
 import { ModelStatusPanel } from "@/components/dashboard/model-status-panel";
 import { NetworkBadge } from "@/components/dashboard/network-badge";
 import { PaperPanel } from "@/components/dashboard/paper-panel";
 import { RiskPanel } from "@/components/dashboard/risk-panel";
 import { SessionKeyPanel } from "@/components/dashboard/session-key-panel";
-import { StatCards } from "@/components/dashboard/stat-cards";
+import { LiveTicker } from "@/components/landing/live-ticker";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { useForecast } from "@/lib/forecast";
 import { fadeUp } from "@/lib/motion";
-
-const ForecastChart = dynamic(
-  () => import("@/components/dashboard/forecast-chart").then((m) => m.ForecastChart),
-  { ssr: false, loading: () => <div className="h-full w-full rounded-md shimmer" /> },
-);
 
 export default function DashboardPage() {
   const [pair, setPair] = useState<TradingPair>("ETH/USDC");
@@ -54,6 +49,8 @@ export default function DashboardPage() {
         </div>
       </header>
 
+      <LiveTicker />
+
       <motion.main
         className="container space-y-6 py-8"
         variants={fadeUp}
@@ -63,10 +60,10 @@ export default function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              <span className="font-mono">{pair}</span> forecast
+              <span className="font-mono">{pair}</span> terminal
             </h1>
             <p className="text-sm text-muted-foreground">
-              Probabilistic 12-step outlook · 1h candles · top-20 universe
+              Live model signals · probabilistic forecast · top-20 universe
             </p>
           </div>
           {data?.isSample && (
@@ -77,37 +74,22 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {data && <StatCards candles={data.candles} forecast={data.forecast} />}
+        {isLoading || !data ? (
+          <div className="h-[420px] w-full rounded-2xl shimmer" />
+        ) : (
+          <MarketTerminal pair={pair} candles={data.candles} forecast={data.forecast} />
+        )}
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="ring-gradient card-glow lg:col-span-2">
-            <CardHeader className="flex-row items-center justify-between">
-              <CardTitle className="font-mono text-base">{pair}</CardTitle>
-              <span className="text-xs text-muted-foreground">
-                History + 12-step forecast (80% band)
-              </span>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[360px] w-full">
-                {isLoading || !data ? (
-                  <div className="h-full w-full rounded-md shimmer" />
-                ) : (
-                  <ForecastChart candles={data.candles} forecast={data.forecast} />
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
+          <div className="space-y-6 lg:col-span-2">
+            {data && <PaperPanel candles={data.candles} />}
+            <ModelStatusPanel />
+          </div>
           <div className="space-y-6">
             {data && <ForecastSummary forecast={data.forecast} />}
             <RiskPanel />
             <SessionKeyPanel />
           </div>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          {data && <PaperPanel candles={data.candles} />}
-          <ModelStatusPanel />
         </div>
 
         {data && (

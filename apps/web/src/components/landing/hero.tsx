@@ -1,72 +1,76 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { LineChart, Lock, ShieldCheck, Target } from "lucide-react";
 
-import { ForecastPreview } from "@/components/landing/forecast-preview";
+import { TerminalPreview } from "@/components/landing/terminal-preview";
 import { AuroraBackground } from "@/components/ui/aurora-background";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
+
+const points = [
+  { icon: ShieldCheck, title: "Non-custodial", body: "You keep control" },
+  { icon: Lock, title: "Bank-grade security", body: "Read-only by design" },
+  { icon: Target, title: "Built for traders", body: "Speed. Accuracy. Edge." },
+];
 
 export function Hero() {
   return (
     <section className="relative overflow-hidden">
-      <AuroraBackground className="h-[640px]" />
-      <div className="container grid items-center gap-12 py-20 md:py-28 lg:grid-cols-2">
+      <AuroraBackground className="h-[560px]" />
+      <div className="container grid items-center gap-10 py-12 lg:grid-cols-[minmax(0,460px)_1fr] lg:gap-12 lg:py-16">
+        {/* Left column */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={{ duration: 0.6, ease: [0.21, 0.47, 0.32, 0.98] }}
         >
-          <Badge variant="primary" className="mb-6">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Non-custodial · Paper trading by default
-          </Badge>
-          <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl lg:text-[4rem] lg:leading-[1.05]">
-            Trade crypto with a <span className="text-shimmer">forecasting model</span>, not a black box.
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/60 bg-secondary/40 px-3 py-1 text-xs text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            Signal-first <span className="text-border">•</span> Quant-driven{" "}
+            <span className="text-border">•</span> Wallet-connected
+          </div>
+
+          <h1 className="text-balance text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl xl:text-6xl">
+            Trade the top 20 crypto markets with <span className="text-shimmer">live model signals.</span>
           </h1>
-          <p className="mt-6 max-w-xl text-pretty text-lg text-muted-foreground">
-            Kronos generates probabilistic OHLCV forecasts, derives signals, and executes on-chain
-            through delegated session keys. You connect a wallet and keep custody the whole way.
+
+          <p className="mt-6 max-w-md text-pretty text-base text-muted-foreground sm:text-lg">
+            AI forecasts. Ranked setups. Execution-ready insights. Connect your wallet and trade with
+            institutional-grade edge.
           </p>
+
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <ConnectWalletButton size="lg" />
-            <a href="#how-it-works" className={buttonVariants({ variant: "outline", size: "lg" })}>
-              See how it works
-              <ArrowRight className="h-4 w-4" />
+            <a href="/dashboard/analytics" className={buttonVariants({ variant: "outline", size: "lg" })}>
+              <LineChart className="h-4 w-4" />
+              Explore Signals
             </a>
           </div>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Trades the top 20 assets only. Live trading is always a separate, explicit opt-in — we
-            never take custody of your funds.
-          </p>
+
+          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-3">
+            {points.map((p) => (
+              <div key={p.title} className="flex items-start gap-2.5">
+                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary ring-1 ring-inset ring-primary/20">
+                  <p.icon className="h-4 w-4" />
+                </span>
+                <span className="leading-tight">
+                  <span className="block text-sm font-semibold">{p.title}</span>
+                  <span className="block text-xs text-muted-foreground">{p.body}</span>
+                </span>
+              </div>
+            ))}
+          </div>
         </motion.div>
 
+        {/* Right column — live terminal preview */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
+          transition={{ duration: 0.7, delay: 0.12, ease: [0.21, 0.47, 0.32, 0.98] }}
+          className="min-w-0"
         >
-          <Card className="ring-gradient card-glow shadow-2xl shadow-primary/10">
-            <CardHeader className="flex-row items-center justify-between">
-              <div>
-                <CardTitle className="font-mono text-base">ETH / USDC</CardTitle>
-                <CardDescription>1h forecast · 80% interval</CardDescription>
-              </div>
-              <Badge variant="primary">p(up) 0.68</Badge>
-            </CardHeader>
-            <CardContent>
-              <ForecastPreview />
-            </CardContent>
-          </Card>
+          <TerminalPreview />
         </motion.div>
       </div>
     </section>
