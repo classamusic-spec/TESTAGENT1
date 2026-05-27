@@ -1,10 +1,11 @@
 "use client";
 
-import { Power, Shield, Sparkles, Wallet, Zap } from "lucide-react";
+import { Lock, Power, Shield, Sparkles, Wallet, Zap } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { type RiskLevel } from "@/lib/auto-trader";
 import { type Stablecoin, useBotAccount } from "@/lib/bot-account";
+import { CHAINS, useChain } from "@/lib/chain-store";
 import { cn } from "@/lib/utils";
 
 const PRESETS: { level: RiskLevel; label: string; blurb: string; icon: typeof Shield }[] = [
@@ -18,6 +19,8 @@ const PRESET_AMOUNTS = [100, 500, 1000, 5000];
 export function DepositCard() {
   const { currency, deposit, riskLevel, running, setCurrency, setDeposit, setRiskLevel, start, stop } =
     useBotAccount();
+  const chain = useChain((s) => s.chain);
+  const chainMeta = CHAINS[chain];
 
   return (
     <Card>
@@ -27,7 +30,7 @@ export function DepositCard() {
           Fund your bot
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Add {currency}, pick a risk level, and the AI does the rest. Paper mode — no real funds.
+          Add {currency} on {chainMeta.label}, pick a risk level, and the AI does the rest.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -128,6 +131,12 @@ export function DepositCard() {
           <Power className="h-4 w-4" />
           {running ? "Stop bot" : "Start bot"}
         </button>
+
+        <p className="flex items-start gap-2 rounded-lg bg-secondary/30 px-3 py-2 text-[11px] text-muted-foreground">
+          <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+          Non-custodial: funds stay in your wallet. The bot trades via a scoped, spend-capped session
+          key on {chainMeta.label} ({chainMeta.dex}). Paper today — live execution is testnet-gated.
+        </p>
       </CardContent>
     </Card>
   );
