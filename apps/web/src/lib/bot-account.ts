@@ -16,11 +16,13 @@ interface BotAccountState {
   deposit: number;
   riskLevel: RiskLevel;
   timeframe: Timeframe;
+  diversify: boolean;
   running: boolean;
   setCurrency: (c: Stablecoin) => void;
   setDeposit: (d: number) => void;
   setRiskLevel: (r: RiskLevel) => void;
   setTimeframe: (t: Timeframe) => void;
+  setDiversify: (v: boolean) => void;
   start: () => void;
   stop: () => void;
 }
@@ -32,11 +34,13 @@ export const useBotAccount = create<BotAccountState>()(
       deposit: 1000,
       riskLevel: "balanced",
       timeframe: "4h", // higher timeframe by default — far less fee drag than 1h
+      diversify: false,
       running: false,
       setCurrency: (currency) => set({ currency }),
       setDeposit: (deposit) => set({ deposit }),
       setRiskLevel: (riskLevel) => set({ riskLevel }),
       setTimeframe: (timeframe) => set({ timeframe }),
+      setDiversify: (diversify) => set({ diversify }),
       start: () => set({ running: true }),
       stop: () => set({ running: false }),
     }),

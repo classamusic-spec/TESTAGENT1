@@ -18,7 +18,7 @@ const PRESETS: { level: RiskLevel; label: string; blurb: string; icon: typeof Sh
 const PRESET_AMOUNTS = [100, 500, 1000, 5000];
 
 export function DepositCard() {
-  const { currency, deposit, riskLevel, timeframe, running, setCurrency, setDeposit, setRiskLevel, setTimeframe, start, stop } =
+  const { currency, deposit, riskLevel, timeframe, diversify, running, setCurrency, setDeposit, setRiskLevel, setTimeframe, setDiversify, start, stop } =
     useBotAccount();
   const chain = useChain((s) => s.chain);
   const chainMeta = CHAINS[chain];
@@ -142,6 +142,22 @@ export function DepositCard() {
             Higher timeframe = fewer trades = lower fees. 4h/1d trade far less than 1h.
           </p>
         </div>
+
+        {/* Diversify across multiple assets */}
+        <button
+          type="button"
+          onClick={() => setDiversify(!diversify)}
+          disabled={running}
+          className="flex w-full items-center justify-between rounded-lg bg-secondary/40 px-3 py-2 text-sm disabled:opacity-60"
+        >
+          <span className="text-left leading-tight">
+            <span className="block font-medium">Diversify across assets</span>
+            <span className="block text-[10px] text-muted-foreground">Spread the bot over BTC/ETH/SOL/BNB — lower drawdown</span>
+          </span>
+          <span className={cn("relative h-5 w-9 shrink-0 rounded-full transition-colors", diversify ? "bg-primary" : "bg-muted")}>
+            <span className={cn("absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform", diversify ? "translate-x-4" : "translate-x-0.5")} />
+          </span>
+        </button>
 
         <button
           type="button"

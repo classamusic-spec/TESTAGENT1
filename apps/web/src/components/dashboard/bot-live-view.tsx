@@ -1,20 +1,35 @@
 "use client";
 
-import { Bot, Pause, Play, TrendingDown, TrendingUp } from "lucide-react";
+import { Bot, Layers, Pause, Play, TrendingDown, TrendingUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import type { Candle } from "@kronos/shared";
 
-import { configForDeposit, type TradeReason } from "@/lib/auto-trader";
-import { runAutoStrategy } from "@/lib/auto-trader";
+import { configForDeposit, runAutoStrategy, type AutoStep, type AutoTrade, type TradeReason } from "@/lib/auto-trader";
 import { useBotAccount } from "@/lib/bot-account";
 import { narrate } from "@/lib/explain";
 import { genCandles } from "@/lib/market-mock";
-import { resampleCandles, TIMEFRAME_FACTOR } from "@/lib/resample";
+import { combinePortfolio } from "@/lib/portfolio";
+import { resampleCandles, TIMEFRAME_FACTOR, type Timeframe } from "@/lib/resample";
 import { cn, formatPrice } from "@/lib/utils";
+
+const BASKET = ["BTC", "ETH", "SOL", "BNB"];
 
 function seedFor(symbol: string): number {
   return [...symbol].reduce((a, ch) => a + ch.charCodeAt(0), 7);
+}
+
+function seriesFor(symbol: string, timeframe: Timeframe): Candle[] {
+  const hourly: Candle[] = genCandles(seedFor(symbol), 720, 3000, 0.013).map((c, i) => ({
+    openTime: i * 3_600_000,
+    open: c.o,
+    high: c.h,
+    low: c.l,
+    close: c.c,
+    volume: c.v,
+    closed: true,
+  }));
+  return resampleCandles(hourly, TIMEFRAME_FACTOR[timeframe]);
 }
 
 const LABEL: Record<TradeReason, string> = {
@@ -44,35 +59,42 @@ function Tile({ label, value, tone, sub }: { label: string; value: string; tone?
   );
 }
 
+interface SingleModel {
+  mode: "single";
+  curve: number[];
+  steps: AutoStep[];
+  trades: AutoTrade[];
+}
+interface PortfolioModel {
+  mode: "portfolio";
+  curve: number[];
+  perAsset: { symbol: string; returnPct: number }[];
+  maxDrawdownPct: number;
+}
+
 export function BotLiveView({ symbol = "ETH" }: { candles?: Candle[]; symbol?: string }) {
-  const { deposit, riskLevel, timeframe, running } = useBotAccount();
+  const { deposit, riskLevel, timeframe, diversify, running } = useBotAccount();
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
 
-  // Generate enough hourly history (deterministic per symbol) then resample to
-  // the chosen timeframe, so higher timeframes still have plenty of bars.
-  const run = useMemo(() => {
-    const hourly: Candle[] = genCandles(seedFor(symbol), 720, 3000, 0.013).map((c, i) => ({
-      openTime: i * 3_600_000,
-      open: c.o,
-      high: c.h,
-      low: c.l,
-      close: c.c,
-      volume: c.v,
-      closed: true,
-    }));
-    const series = resampleCandles(hourly, TIMEFRAME_FACTOR[timeframe]);
-    return runAutoStrategy(series, configForDeposit(deposit, riskLevel));
-  }, [symbol, deposit, riskLevel, timeframe]);
-  const last = run.steps.length - 1;
+  const model: SingleModel | PortfolioModel = useMemo(() => {
+    const cfg = configForDeposit(deposit, riskLevel);
+    if (diversify) {
+      const runs = BASKET.map((s) => ({ symbol: s, run: runAutoStrategy(seriesFor(s, timeframe), cfg) }));
+      const port = combinePortfolio(runs, deposit);
+      return { mode: "portfolio", curve: port.curve.map((p) => p.equity), perAsset: port.perAsset, maxDrawdownPct: port.maxDrawdownPct };
+    }
+    const run = runAutoStrategy(seriesFor(symbol, timeframe), cfg);
+    return { mode: "single", curve: run.steps.map((s) => s.equity), steps: run.steps, trades: run.trades };
+  }, [symbol, deposit, riskLevel, timeframe, diversify]);
 
-  // Restart the stream when the bot is (re)started or reconfigured.
+  const last = model.curve.length - 1;
+
   useEffect(() => {
     setIdx(0);
     setPaused(false);
-  }, [running, deposit, riskLevel, timeframe, symbol]);
+  }, [running, deposit, riskLevel, timeframe, diversify, symbol]);
 
-  // Auto-stream: advance one bar at a time, looping so it keeps feeling live.
   useEffect(() => {
     if (!running || paused) return;
     const id = setTimeout(() => setIdx((i) => (i >= last ? 0 : i + 1)), 280);
@@ -94,22 +116,18 @@ export function BotLiveView({ symbol = "ETH" }: { candles?: Candle[]; symbol?: s
     );
   }
 
-  const step = run.steps[Math.min(idx, last)] ?? run.steps[0];
-  const visible = run.trades.filter((t) => t.index <= idx);
-  const lastTrade = visible[visible.length - 1];
-  const closes = visible.filter((t) => IS_CLOSE[t.reason]);
-  const wins = closes.filter((t) => t.realizedPnl > 0).length;
-  const winRate = closes.length ? (wins / closes.length) * 100 : 0;
-  const profit = (step?.equity ?? deposit) - deposit;
+  const cur = Math.min(idx, last);
+  const balance = model.curve[cur] ?? deposit;
+  const profit = balance - deposit;
   const profitPct = deposit > 0 ? (profit / deposit) * 100 : 0;
-  const series = run.steps.slice(0, idx + 1).map((s) => ({ equity: s.equity }));
+  const chartData = model.curve.slice(0, cur + 1).map((equity) => ({ equity }));
 
   return (
     <div className="glass ring-gradient card-glow space-y-5 rounded-2xl p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/12 text-primary">
-            <Bot className="h-5 w-5" />
+            {model.mode === "portfolio" ? <Layers className="h-5 w-5" /> : <Bot className="h-5 w-5" />}
           </span>
           <div>
             <p className="flex items-center gap-2 text-sm font-semibold">
@@ -119,7 +137,8 @@ export function BotLiveView({ symbol = "ETH" }: { candles?: Candle[]; symbol?: s
               </span>
             </p>
             <p className="text-xs text-muted-foreground">
-              <span className="capitalize">{riskLevel}</span> · {symbol}/USDC · {timeframe} · paper
+              <span className="capitalize">{riskLevel}</span> ·{" "}
+              {model.mode === "portfolio" ? `${BASKET.length} assets` : `${symbol}/USDC`} · {timeframe} · paper
             </p>
           </div>
         </div>
@@ -133,47 +152,69 @@ export function BotLiveView({ symbol = "ETH" }: { candles?: Candle[]; symbol?: s
         </button>
       </div>
 
-      {/* Narration */}
+      {model.mode === "single" ? (
+        <SingleBody model={model} cur={cur} deposit={deposit} balance={balance} profit={profit} profitPct={profitPct} chartData={chartData} />
+      ) : (
+        <PortfolioBody model={model} deposit={deposit} balance={balance} profit={profit} profitPct={profitPct} chartData={chartData} />
+      )}
+    </div>
+  );
+}
+
+function EquityChart({ data, deposit }: { data: { equity: number }[]; deposit: number }) {
+  return (
+    <div className="h-[180px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id="bot-equity" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="hsl(158 84% 45%)" stopOpacity={0.4} />
+              <stop offset="100%" stopColor="hsl(158 84% 45%)" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <YAxis hide domain={["dataMin", "dataMax"]} />
+          <ReferenceLine y={deposit} stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3" />
+          <Tooltip
+            contentStyle={{ background: "hsl(222 44% 9% / 0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
+            labelFormatter={() => ""}
+            formatter={(v: number) => [formatPrice(v), "balance"]}
+          />
+          <Area type="monotone" dataKey="equity" stroke="hsl(158 84% 45%)" strokeWidth={2} fill="url(#bot-equity)" isAnimationActive={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function SingleBody(props: {
+  model: SingleModel;
+  cur: number;
+  deposit: number;
+  balance: number;
+  profit: number;
+  profitPct: number;
+  chartData: { equity: number }[];
+}) {
+  const { model, cur, deposit, balance, profit, profitPct, chartData } = props;
+  const step = model.steps[cur] ?? model.steps[0];
+  const visible = model.trades.filter((t) => t.index <= cur);
+  const lastTrade = visible[visible.length - 1];
+  const closes = visible.filter((t) => IS_CLOSE[t.reason]);
+  const wins = closes.filter((t) => t.realizedPnl > 0).length;
+  const winRate = closes.length ? (wins / closes.length) * 100 : 0;
+
+  return (
+    <>
       <p className="rounded-lg border border-border/40 bg-secondary/20 px-3 py-2.5 text-sm text-foreground/90">
         {step ? narrate(step, lastTrade) : "Starting up…"}
       </p>
-
-      {/* Headline stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Tile label="Balance" value={formatPrice(step?.equity ?? deposit)} />
-        <Tile
-          label="Profit"
-          value={`${profit >= 0 ? "+" : "-"}$${Math.abs(profit).toFixed(2)}`}
-          tone={profit >= 0 ? "up" : "down"}
-          sub={`${profitPct >= 0 ? "+" : ""}${profitPct.toFixed(2)}%`}
-        />
+        <Tile label="Balance" value={formatPrice(balance)} />
+        <Tile label="Profit" value={`${profit >= 0 ? "+" : "-"}$${Math.abs(profit).toFixed(2)}`} tone={profit >= 0 ? "up" : "down"} sub={`${profitPct >= 0 ? "+" : ""}${profitPct.toFixed(2)}%`} />
         <Tile label="Win rate" value={`${winRate.toFixed(0)}%`} sub={`${wins}/${closes.length} closed`} />
         <Tile label="Trades" value={`${visible.length}`} />
       </div>
-
-      {/* Equity curve */}
-      <div className="h-[180px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={series} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-            <defs>
-              <linearGradient id="bot-equity" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(158 84% 45%)" stopOpacity={0.4} />
-                <stop offset="100%" stopColor="hsl(158 84% 45%)" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <YAxis hide domain={["dataMin", "dataMax"]} />
-            <ReferenceLine y={deposit} stroke="rgba(255,255,255,0.2)" strokeDasharray="3 3" />
-            <Tooltip
-              contentStyle={{ background: "hsl(222 44% 9% / 0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
-              labelFormatter={() => ""}
-              formatter={(v: number) => [formatPrice(v), "balance"]}
-            />
-            <Area type="monotone" dataKey="equity" stroke="hsl(158 84% 45%)" strokeWidth={2} fill="url(#bot-equity)" isAnimationActive={false} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Live trade feed */}
+      <EquityChart data={chartData} deposit={deposit} />
       <div>
         <p className="mb-2 text-[10px] uppercase tracking-wide text-muted-foreground">Recent trades</p>
         <div className="space-y-1.5">
@@ -187,37 +228,59 @@ export function BotLiveView({ symbol = "ETH" }: { candles?: Candle[]; symbol?: s
               const win = t.realizedPnl > 0;
               return (
                 <div key={`${t.index}-${i}`} className="flex items-center gap-3 rounded-lg bg-secondary/30 px-3 py-2 text-sm">
-                  <span
-                    className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-md",
-                      t.reason === "open_long" || t.reason === "take_profit"
-                        ? "bg-primary/15 text-primary"
-                        : t.reason === "stop_loss"
-                          ? "bg-danger/15 text-danger"
-                          : "bg-secondary text-muted-foreground",
-                    )}
-                  >
+                  <span className={cn("flex h-6 w-6 items-center justify-center rounded-md", t.reason === "open_long" || t.reason === "take_profit" ? "bg-primary/15 text-primary" : t.reason === "stop_loss" ? "bg-danger/15 text-danger" : "bg-secondary text-muted-foreground")}>
                     {win || t.reason === "open_long" ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                   </span>
                   <span className="font-medium">{LABEL[t.reason]}</span>
                   <span className="font-mono text-muted-foreground">{formatPrice(t.price)}</span>
                   <span className="ml-auto font-mono">
-                    {close ? (
-                      <span className={win ? "text-primary" : "text-danger"}>
-                        {win ? "+" : "-"}${Math.abs(t.realizedPnl).toFixed(2)}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">opened</span>
-                    )}
+                    {close ? <span className={win ? "text-primary" : "text-danger"}>{win ? "+" : "-"}${Math.abs(t.realizedPnl).toFixed(2)}</span> : <span className="text-muted-foreground">opened</span>}
                   </span>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {new Date(t.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </span>
+                  <span className="font-mono text-xs text-muted-foreground">{new Date(t.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
               );
             })}
         </div>
       </div>
-    </div>
+    </>
+  );
+}
+
+function PortfolioBody(props: {
+  model: PortfolioModel;
+  deposit: number;
+  balance: number;
+  profit: number;
+  profitPct: number;
+  chartData: { equity: number }[];
+}) {
+  const { model, deposit, balance, profit, profitPct, chartData } = props;
+  return (
+    <>
+      <p className="rounded-lg border border-border/40 bg-secondary/20 px-3 py-2.5 text-sm text-foreground/90">
+        Diversified across {model.perAsset.length} assets — the bot trades each independently and rebalances equally, smoothing out single-coin swings.
+      </p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Tile label="Balance" value={formatPrice(balance)} />
+        <Tile label="Profit" value={`${profit >= 0 ? "+" : "-"}$${Math.abs(profit).toFixed(2)}`} tone={profit >= 0 ? "up" : "down"} sub={`${profitPct >= 0 ? "+" : ""}${profitPct.toFixed(2)}%`} />
+        <Tile label="Max drawdown" value={`-${model.maxDrawdownPct.toFixed(2)}%`} tone="down" />
+        <Tile label="Assets" value={`${model.perAsset.length}`} />
+      </div>
+      <EquityChart data={chartData} deposit={deposit} />
+      <div>
+        <p className="mb-2 text-[10px] uppercase tracking-wide text-muted-foreground">Per-asset performance</p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {model.perAsset.map((a) => (
+            <div key={a.symbol} className="rounded-lg bg-secondary/30 px-3 py-2 text-sm">
+              <p className="font-medium">{a.symbol}/USDC</p>
+              <p className={cn("font-mono", a.returnPct >= 0 ? "text-primary" : "text-danger")}>
+                {a.returnPct >= 0 ? "+" : ""}
+                {a.returnPct.toFixed(2)}%
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
