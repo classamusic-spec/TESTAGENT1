@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { type RiskLevel } from "@/lib/auto-trader";
 import { type Stablecoin, useBotAccount } from "@/lib/bot-account";
 import { CHAINS, useChain } from "@/lib/chain-store";
+import { TIMEFRAMES } from "@/lib/resample";
 import { cn } from "@/lib/utils";
 
 const PRESETS: { level: RiskLevel; label: string; blurb: string; icon: typeof Shield }[] = [
@@ -17,7 +18,7 @@ const PRESETS: { level: RiskLevel; label: string; blurb: string; icon: typeof Sh
 const PRESET_AMOUNTS = [100, 500, 1000, 5000];
 
 export function DepositCard() {
-  const { currency, deposit, riskLevel, running, setCurrency, setDeposit, setRiskLevel, start, stop } =
+  const { currency, deposit, riskLevel, timeframe, running, setCurrency, setDeposit, setRiskLevel, setTimeframe, start, stop } =
     useBotAccount();
   const chain = useChain((s) => s.chain);
   const chainMeta = CHAINS[chain];
@@ -116,6 +117,30 @@ export function DepositCard() {
               />
             </button>
           ))}
+        </div>
+
+        {/* Timeframe — higher = fewer trades = less cost drag */}
+        <div>
+          <p className="mb-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">Trade frequency</p>
+          <div className="flex gap-1 rounded-lg bg-secondary/40 p-1">
+            {TIMEFRAMES.map((tf) => (
+              <button
+                key={tf}
+                type="button"
+                onClick={() => setTimeframe(tf)}
+                disabled={running}
+                className={cn(
+                  "flex-1 rounded-md px-2 py-1.5 text-sm font-medium transition-colors disabled:opacity-60",
+                  timeframe === tf ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Higher timeframe = fewer trades = lower fees. 4h/1d trade far less than 1h.
+          </p>
         </div>
 
         <button

@@ -9,7 +9,13 @@ import { configForDeposit, type TradeReason } from "@/lib/auto-trader";
 import { runAutoStrategy } from "@/lib/auto-trader";
 import { useBotAccount } from "@/lib/bot-account";
 import { narrate } from "@/lib/explain";
+import { genCandles } from "@/lib/market-mock";
+import { resampleCandles, TIMEFRAME_FACTOR } from "@/lib/resample";
 import { cn, formatPrice } from "@/lib/utils";
+
+function seedFor(symbol: string): number {
+  return [...symbol].reduce((a, ch) => a + ch.charCodeAt(0), 7);
+}
 
 const LABEL: Record<TradeReason, string> = {
   open_long: "Long",
@@ -38,22 +44,33 @@ function Tile({ label, value, tone, sub }: { label: string; value: string; tone?
   );
 }
 
-export function BotLiveView({ candles, symbol = "ETH" }: { candles: Candle[]; symbol?: string }) {
-  const { deposit, riskLevel, running } = useBotAccount();
+export function BotLiveView({ symbol = "ETH" }: { candles?: Candle[]; symbol?: string }) {
+  const { deposit, riskLevel, timeframe, running } = useBotAccount();
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
 
-  const run = useMemo(
-    () => runAutoStrategy(candles, configForDeposit(deposit, riskLevel)),
-    [candles, deposit, riskLevel],
-  );
+  // Generate enough hourly history (deterministic per symbol) then resample to
+  // the chosen timeframe, so higher timeframes still have plenty of bars.
+  const run = useMemo(() => {
+    const hourly: Candle[] = genCandles(seedFor(symbol), 720, 3000, 0.013).map((c, i) => ({
+      openTime: i * 3_600_000,
+      open: c.o,
+      high: c.h,
+      low: c.l,
+      close: c.c,
+      volume: c.v,
+      closed: true,
+    }));
+    const series = resampleCandles(hourly, TIMEFRAME_FACTOR[timeframe]);
+    return runAutoStrategy(series, configForDeposit(deposit, riskLevel));
+  }, [symbol, deposit, riskLevel, timeframe]);
   const last = run.steps.length - 1;
 
   // Restart the stream when the bot is (re)started or reconfigured.
   useEffect(() => {
     setIdx(0);
     setPaused(false);
-  }, [running, deposit, riskLevel, candles]);
+  }, [running, deposit, riskLevel, timeframe, symbol]);
 
   // Auto-stream: advance one bar at a time, looping so it keeps feeling live.
   useEffect(() => {
@@ -101,7 +118,9 @@ export function BotLiveView({ candles, symbol = "ETH" }: { candles: Candle[]; sy
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" /> Live
               </span>
             </p>
-            <p className="text-xs capitalize text-muted-foreground">{riskLevel} · {symbol}/USDC · paper</p>
+            <p className="text-xs text-muted-foreground">
+              <span className="capitalize">{riskLevel}</span> · {symbol}/USDC · {timeframe} · paper
+            </p>
           </div>
         </div>
         <button
