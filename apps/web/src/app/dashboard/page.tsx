@@ -1,12 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Activity, ArrowUpRight, RefreshCw, ShieldCheck } from "lucide-react";
+import { Activity, ArrowUpRight, ChevronDown, RefreshCw, ShieldCheck } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Candle, Forecast, TradingPair } from "@kronos/shared";
 
 import { AssetSelect, TokenAvatar } from "@/components/dashboard/asset-select";
+import { BotLiveView } from "@/components/dashboard/bot-live-view";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { DepositCard } from "@/components/dashboard/deposit-card";
+import { ExperienceToggle } from "@/components/dashboard/experience-toggle";
 import { ForecastSummary } from "@/components/dashboard/forecast-summary";
 import { ForecastSteps } from "@/components/dashboard/forecast-steps";
 import { ForecastTerminal } from "@/components/dashboard/forecast-terminal";
@@ -23,6 +26,7 @@ import { LiveTicker } from "@/components/landing/live-ticker";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { Gauge, RingGauge } from "@/components/ui/metrics";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
+import { useExperienceMode } from "@/lib/experience-mode";
 import { useForecast } from "@/lib/forecast";
 import { fadeUp } from "@/lib/motion";
 import { cn, formatPrice } from "@/lib/utils";
@@ -148,6 +152,8 @@ function Overview({ pair, candles, forecast }: { pair: TradingPair; candles: Can
 export default function DashboardPage() {
   const [pair, setPair] = useState<TradingPair>("ETH/USDC");
   const { data, isLoading } = useForecast(pair);
+  const mode = useExperienceMode((s) => s.mode);
+  const newbie = mode === "newbie";
   const updated = data ? new Date(data.forecast.generatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
 
   return (
@@ -166,6 +172,7 @@ export default function DashboardPage() {
             <DashboardNav />
           </div>
           <div className="flex items-center gap-3">
+            <ExperienceToggle />
             <NetworkBadge />
             <AssetSelect selected={pair} onSelect={setPair} />
             <ConnectWalletButton />
@@ -188,9 +195,19 @@ export default function DashboardPage() {
             </span>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">
-                <span className="font-mono">{pair}</span> forecast
+                {newbie ? (
+                  "Your trading bot"
+                ) : (
+                  <>
+                    <span className="font-mono">{pair}</span> forecast
+                  </>
+                )}
               </h1>
-              <p className="text-sm text-muted-foreground">Probabilistic 12-step outlook · Top-20 universe</p>
+              <p className="text-sm text-muted-foreground">
+                {newbie
+                  ? "Add funds and let the AI trade — you keep custody."
+                  : "Probabilistic 12-step outlook · Top-20 universe"}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -208,6 +225,22 @@ export default function DashboardPage() {
 
         {isLoading || !data ? (
           <div className="h-[600px] w-full rounded-2xl shimmer" />
+        ) : newbie ? (
+          <div className="space-y-5">
+            <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
+              <DepositCard />
+              <BotLiveView candles={data.candles} symbol={pair.split("/")[0]} />
+            </div>
+            <details className="group rounded-2xl border border-border/50 bg-secondary/15">
+              <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                <span>Market details &amp; model internals</span>
+                <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="border-t border-border/50 p-4">
+                <Overview pair={pair} candles={data.candles} forecast={data.forecast} />
+              </div>
+            </details>
+          </div>
         ) : (
           <Overview pair={pair} candles={data.candles} forecast={data.forecast} />
         )}

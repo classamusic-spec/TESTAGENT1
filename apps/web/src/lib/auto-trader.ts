@@ -33,9 +33,12 @@ export interface AutoConfig {
   takeProfitPct: number | null;
   trailing: boolean;
   cooldownBars: number; // bars to wait after an exit before opening a fresh position
+  maxDailyLossPct: number | null; // protection: halt fresh entries for the day past this loss
   feeBps: number;
   slippageBps: number;
 }
+
+export type RiskLevel = "conservative" | "balanced" | "aggressive";
 
 export const DEFAULT_AUTO_CONFIG: AutoConfig = {
   startCash: 10_000,
@@ -50,9 +53,65 @@ export const DEFAULT_AUTO_CONFIG: AutoConfig = {
   takeProfitPct: 0.08,
   trailing: false,
   cooldownBars: 1,
+  maxDailyLossPct: 0.05,
   feeBps: 10,
   slippageBps: 5,
 };
+
+/**
+ * Risk presets for the simplified "Newbie" experience: one tap sets the whole
+ * strategy. These are human-chosen profiles (invariant 3) — the bot never edits
+ * them at runtime. `exposure` is the fraction of the deposit committed per trade.
+ */
+export const RISK_PRESETS: Record<RiskLevel, Partial<AutoConfig> & { exposure: number }> = {
+  conservative: {
+    exposure: 0.25,
+    longThreshold: 0.6,
+    shortThreshold: 0.4,
+    allowShort: false,
+    stopMode: "atr",
+    atrMult: 1.5,
+    takeProfitPct: 0.05,
+    trailing: false,
+    cooldownBars: 3,
+    maxDailyLossPct: 0.03,
+  },
+  balanced: {
+    exposure: 0.5,
+    longThreshold: 0.55,
+    shortThreshold: 0.45,
+    allowShort: true,
+    stopMode: "atr",
+    atrMult: 2,
+    takeProfitPct: 0.08,
+    trailing: false,
+    cooldownBars: 1,
+    maxDailyLossPct: 0.05,
+  },
+  aggressive: {
+    exposure: 0.85,
+    longThreshold: 0.53,
+    shortThreshold: 0.47,
+    allowShort: true,
+    stopMode: "atr",
+    atrMult: 2.5,
+    takeProfitPct: 0.12,
+    trailing: true,
+    cooldownBars: 0,
+    maxDailyLossPct: 0.08,
+  },
+};
+
+/** Build a full strategy config from a deposit + a chosen risk level. */
+export function configForDeposit(deposit: number, level: RiskLevel): AutoConfig {
+  const { exposure, ...preset } = RISK_PRESETS[level];
+  return {
+    ...DEFAULT_AUTO_CONFIG,
+    ...preset,
+    startCash: deposit,
+    maxPosition: Math.max(1, deposit * exposure),
+  };
+}
 
 /** Causal ATR (average true range) at each bar, using only prior/this candle. */
 export function computeAtrSeries(candles: Candle[], lookback: number): number[] {
@@ -167,6 +226,7 @@ export function runAutoStrategy(candles: Candle[], config: Partial<AutoConfig> =
   let peakEquity = cfg.startCash;
   let maxDrawdown = 0;
   let cooldownUntil = -1; // index until which fresh entries are suppressed
+  let dayStart = cfg.startCash; // equity at the start of the current "day" (24 bars)
 
   const close = (price: number, time: number, index: number, reason: TradeReason) => {
     const fillPrice = price * (1 + (units > 0 ? -slip : slip)); // exit a long by selling (down), a short by buying (up)
@@ -220,6 +280,13 @@ export function runAutoStrategy(candles: Candle[], config: Partial<AutoConfig> =
       best = side === "long" ? Math.max(best, mark) : Math.min(best, mark);
     }
 
+    // Daily-loss protection: reset the day boundary every 24 bars; lock fresh
+    // entries (not exits) once the day's loss exceeds the configured limit.
+    const eqNow = cash + units * mark;
+    if (i % 24 === 0) dayStart = eqNow;
+    const dailyLocked =
+      cfg.maxDailyLossPct != null && dayStart > 0 && eqNow <= dayStart * (1 - cfg.maxDailyLossPct);
+
     const sig = signalFor(pUp, cfg);
     let event: TradeReason | null = null;
 
@@ -257,8 +324,8 @@ export function runAutoStrategy(candles: Candle[], config: Partial<AutoConfig> =
           close(mark, time, i, "flip");
           open(sig as "long" | "short", mark, time, i, true);
           event = "flip";
-        } else if (i >= cooldownUntil) {
-          // fresh entry from flat, only once cooldown has elapsed
+        } else if (i >= cooldownUntil && !dailyLocked) {
+          // fresh entry from flat, once cooldown has elapsed and not daily-locked
           open(sig as "long" | "short", mark, time, i, false);
           event = sigStr === "long" ? "open_long" : "open_short";
         }

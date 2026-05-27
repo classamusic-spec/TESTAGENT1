@@ -16,6 +16,10 @@ starts in **paper mode** by default.
 
 ## Highlights
 
+- **Simple or Advanced.** New users just add USDC/USDT, pick a risk level
+  (Conservative / Balanced / Aggressive), and watch the AI trade in real time —
+  the engine handles entries, exits and stops. Flip to **Advanced** for every
+  tuning knob and the full trading terminal.
 - **Probabilistic forecasts.** Kronos produces full OHLCV distributions with
   prediction intervals — not point guesses. Forecasts use **closed candles only**
   (no look-ahead bias).
@@ -38,15 +42,18 @@ starts in **paper mode** by default.
 
 ## Screenshots
 
-### Dashboard
-Live forecast chart, signal, risk & mode, session key, and the paper-trading loop.
+### Dashboard (Simple mode)
+Fund the bot, pick a risk level, and watch it trade live — balance, profit, win
+rate and a plain-language trade feed update in real time. The full trading
+terminal (forecast chart, signal, risk & mode, session key) lives one click away
+in Advanced mode and under "Market details."
 
 ![Dashboard](docs/images/dashboard.png)
 
 ### Paper lab — autonomous trading
-Watch the bot trade autonomously: play / pause / step through the data, with a
-live equity curve (trade markers), an open-position panel (entry / stop / target /
-unrealized), a trade log, and human-set strategy controls.
+The same simple bot view, and in Advanced mode the full lab: play / pause / step
+through the data, a live equity curve with trade markers, an open-position panel
+(entry / stop / target / unrealized), a trade log, and every strategy control.
 
 ![Paper lab](docs/images/paper-lab.png)
 

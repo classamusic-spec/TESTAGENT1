@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Candle } from "@kronos/shared";
 
-import { computeAtrSeries, runAutoStrategy } from "@/lib/auto-trader";
+import { computeAtrSeries, configForDeposit, RISK_PRESETS, runAutoStrategy } from "@/lib/auto-trader";
 
 function candles(closes: number[]): Candle[] {
   return closes.map(
@@ -113,6 +113,23 @@ describe("runAutoStrategy", () => {
     const opens = (r: ReturnType<typeof runAutoStrategy>) =>
       r.trades.filter((t) => t.reason === "open_long").length;
     expect(opens(withCooldown)).toBeLessThanOrEqual(opens(noCooldown));
+  });
+
+  it("configForDeposit scales position with deposit and risk", () => {
+    const c = configForDeposit(2000, "conservative");
+    expect(c.startCash).toBe(2000);
+    expect(c.maxPosition).toBeCloseTo(2000 * RISK_PRESETS.conservative.exposure);
+    expect(c.allowShort).toBe(false);
+    // Aggressive commits more of the deposit than conservative.
+    expect(configForDeposit(2000, "aggressive").maxPosition).toBeGreaterThan(c.maxPosition);
+  });
+
+  it("daily-loss protection caps fresh entries in a downtrend", () => {
+    const downtrend = candles(Array.from({ length: 80 }, (_, i) => 100 * 0.99 ** i));
+    const protectedRun = runAutoStrategy(downtrend, { allowShort: false, maxDailyLossPct: 0.02, cooldownBars: 0 });
+    const unprotectedRun = runAutoStrategy(downtrend, { allowShort: false, maxDailyLossPct: null, cooldownBars: 0 });
+    const opens = (r: ReturnType<typeof runAutoStrategy>) => r.trades.filter((t) => t.reason === "open_long").length;
+    expect(opens(protectedRun)).toBeLessThanOrEqual(opens(unprotectedRun));
   });
 
   it("reports win rate over closed trades", () => {

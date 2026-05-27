@@ -6,18 +6,24 @@ import { useState } from "react";
 import type { TradingPair } from "@kronos/shared";
 
 import { AssetSelect } from "@/components/dashboard/asset-select";
+import { BotLiveView } from "@/components/dashboard/bot-live-view";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { DepositCard } from "@/components/dashboard/deposit-card";
+import { ExperienceToggle } from "@/components/dashboard/experience-toggle";
 import { NetworkBadge } from "@/components/dashboard/network-badge";
 import { PaperLab } from "@/components/dashboard/paper-lab";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { Badge } from "@/components/ui/badge";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
+import { useExperienceMode } from "@/lib/experience-mode";
 import { useForecast } from "@/lib/forecast";
 import { fadeUp } from "@/lib/motion";
 
 export default function PaperPage() {
   const [pair, setPair] = useState<TradingPair>("ETH/USDC");
   const { data, isLoading } = useForecast(pair);
+  const mode = useExperienceMode((s) => s.mode);
+  const newbie = mode === "newbie";
 
   return (
     <div className="relative min-h-screen">
@@ -35,6 +41,7 @@ export default function PaperPage() {
             <DashboardNav />
           </div>
           <div className="flex items-center gap-3">
+            <ExperienceToggle />
             <NetworkBadge />
             <AssetSelect selected={pair} onSelect={setPair} />
             <ConnectWalletButton />
@@ -42,25 +49,28 @@ export default function PaperPage() {
         </div>
       </header>
 
-      <motion.main
-        className="container space-y-6 py-8"
-        variants={fadeUp}
-        initial="hidden"
-        animate="show"
-      >
+      <motion.main className="container space-y-6 py-8" variants={fadeUp} initial="hidden" animate="show">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Paper trading lab</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {newbie ? "Your trading bot" : "Paper trading lab"}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              <span className="font-mono">{pair}</span> · watch the bot trade autonomously with
-              your limits
+              {newbie
+                ? "Add funds, pick a risk level, and watch the AI trade in real time."
+                : `${pair} · watch the bot trade autonomously with your limits`}
             </p>
           </div>
           <Badge variant="primary">Paper · no real funds</Badge>
         </div>
 
         {isLoading || !data ? (
-          <div className="h-[520px] w-full rounded-md shimmer" />
+          <div className="h-[520px] w-full rounded-2xl shimmer" />
+        ) : newbie ? (
+          <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+            <DepositCard />
+            <BotLiveView candles={data.candles} symbol={pair.split("/")[0]} />
+          </div>
         ) : (
           <PaperLab candles={data.candles} symbol={pair.split("/")[0]} />
         )}
