@@ -30,6 +30,11 @@ def _flat(n: int) -> list[Candle]:
     return _candles([(100.0, 100.0, 100.0) for _ in range(n)])
 
 
+def _trend_small(n: int) -> list[Candle]:
+    # Gentle drift with a small intrabar range (low expected move per bar).
+    return _candles([(100 * 1.001**i * 1.001, 100 * 1.001**i * 0.999, 100 * 1.001**i) for i in range(n)])
+
+
 def test_decide_passes_clean_long() -> None:
     cfg = FilterConfig(min_atr_pct=0.0, max_atr_pct=1.0, min_adx=5.0, block_high_vol_regime=False)
     d = decide(_trend(40), 0.8, signal_config=SignalConfig(), filters=default_filters(cfg))
@@ -83,3 +88,18 @@ def test_filters_suppress_trades_in_dead_market() -> None:
     assert base.n_trades >= 1  # unfiltered opens a position
     assert filtered.n_trades == 0  # filters veto every entry in a dead market
     assert filtered.n_trades <= base.n_trades
+
+
+def test_cost_filter_suppresses_tiny_edge_trades() -> None:
+    # Gentle drift -> small expected move; heavy costs -> cost gate should veto.
+    candles = _trend_small(160)
+    folds = make_walk_forward_folds(len(candles), train_size=60, test_size=30)
+
+    def mild_long(_ctx):
+        return 0.6  # clears threshold but a weak edge
+
+    base = run_backtest(candles, folds, mild_long, CostModel(fee_bps=20, slippage_bps=10))
+    gated = run_backtest(
+        candles, folds, mild_long, CostModel(fee_bps=20, slippage_bps=10), cost_filter=True, cost_margin=2.0
+    )
+    assert gated.n_trades <= base.n_trades

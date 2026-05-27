@@ -9,6 +9,7 @@ from typing import Callable, Sequence
 from src.backtest.costs import CostModel
 from src.backtest.folds import Fold, collect_test_indices
 from src.data.ohlcv import Candle
+from src.risk.atr import average_true_range
 from src.signals.factors import FactorConfig
 from src.signals.filters import SignalFilter
 from src.signals.pipeline import decide
@@ -61,6 +62,8 @@ def run_backtest(
     sizing_config: SizingConfig | None = None,
     factor_config: FactorConfig | None = None,
     filters: list[SignalFilter] | None = None,
+    cost_filter: bool = False,
+    cost_margin: float = 1.0,
 ) -> BacktestResult:
     """Run a walk-forward backtest.
 
@@ -70,10 +73,12 @@ def run_backtest(
 
     With `sizing_config`, the position is sized continuously by confidence and
     volatility (Kelly-capped, vol-targeted) within the signal's direction;
-    otherwise it is a discrete +1 / -1 / 0.
+    otherwise it is a discrete +1 / -1 / 0. With `cost_filter`, entries whose
+    expected move can't clear the round-trip cost are vetoed.
     """
     config = signal_config or SignalConfig()
     decision_points = [t for t in collect_test_indices(folds) if t + 1 < len(candles)]
+    use_pipeline = factor_config is not None or filters is not None or cost_filter
 
     equity = 1.0
     gross_equity = 1.0
@@ -87,9 +92,21 @@ def run_backtest(
     for t in decision_points:
         context = candles[: t + 1]  # closed candles up to and including bar t
         p_up = forecast_fn(context)
-        if factor_config is not None or filters is not None:
+        if use_pipeline:
+            typical_move = None
+            cost_bps = None
+            if cost_filter and context[-1].close:
+                typical_move = average_true_range(context, 14) / context[-1].close
+                cost_bps = cost_model.total_bps
             side = decide(
-                context, p_up, signal_config=config, factor_config=factor_config, filters=filters
+                context,
+                p_up,
+                signal_config=config,
+                factor_config=factor_config,
+                filters=filters,
+                cost_bps=cost_bps,
+                typical_move_pct=typical_move,
+                cost_margin=cost_margin,
             ).side
         else:
             side = derive_signal(p_up, config)
