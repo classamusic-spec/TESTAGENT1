@@ -62,7 +62,7 @@ export default function PaperPage() {
         {isLoading || !data ? (
           <div className="h-[520px] w-full rounded-md shimmer" />
         ) : (
-          <PaperLab candles={data.candles} />
+          <PaperLab candles={data.candles} symbol={pair.split("/")[0]} />
         )}
       </motion.main>
     </div>

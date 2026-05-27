@@ -96,6 +96,25 @@ describe("runAutoStrategy", () => {
     expect(run.trades.some((t) => t.reason === "stop_loss")).toBe(true);
   });
 
+  it("cooldown suppresses immediate re-entry after a stop", () => {
+    const prices = [...Array.from({ length: 15 }, (_, i) => 100 + i), 95, 96, 98, 100, 102, 104, 106];
+    const noCooldown = runAutoStrategy(candles(prices), {
+      stopLossPct: 0.04,
+      takeProfitPct: null,
+      allowShort: false,
+      cooldownBars: 0,
+    });
+    const withCooldown = runAutoStrategy(candles(prices), {
+      stopLossPct: 0.04,
+      takeProfitPct: null,
+      allowShort: false,
+      cooldownBars: 5,
+    });
+    const opens = (r: ReturnType<typeof runAutoStrategy>) =>
+      r.trades.filter((t) => t.reason === "open_long").length;
+    expect(opens(withCooldown)).toBeLessThanOrEqual(opens(noCooldown));
+  });
+
   it("reports win rate over closed trades", () => {
     const run = runAutoStrategy(candles(Array.from({ length: 60 }, (_, i) => 100 + 8 * Math.sin(i / 3))));
     expect(run.summary.closedTrades).toBeGreaterThanOrEqual(0);

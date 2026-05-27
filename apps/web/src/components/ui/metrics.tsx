@@ -43,6 +43,55 @@ export function Sparkline({
   );
 }
 
+/** Circular progress ring (0-100) with optional center label. */
+export function RingGauge({
+  value,
+  max = 100,
+  size = 52,
+  stroke = 5,
+  label,
+}: {
+  value: number;
+  max?: number;
+  size?: number;
+  stroke?: number;
+  label?: string;
+}) {
+  const pct = Math.min(1, Math.max(0, value / max));
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  return (
+    <svg width={size} height={size} className="shrink-0 -rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(148,163,184,0.18)" strokeWidth={stroke} />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={UP}
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={c}
+        strokeDashoffset={c * (1 - pct)}
+      />
+      {label && (
+        <text
+          x={size / 2}
+          y={size / 2}
+          transform={`rotate(90 ${size / 2} ${size / 2})`}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize={11}
+          fontWeight={600}
+          fill="currentColor"
+        >
+          {label}
+        </text>
+      )}
+    </svg>
+  );
+}
+
 /** Semicircular sentiment gauge (0-100). */
 export function Gauge({ value, max = 100 }: { value: number; max?: number }) {
   const pct = Math.min(1, Math.max(0, value / max));

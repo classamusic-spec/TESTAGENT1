@@ -32,6 +32,7 @@ export interface AutoConfig {
   atrMult: number;
   takeProfitPct: number | null;
   trailing: boolean;
+  cooldownBars: number; // bars to wait after an exit before opening a fresh position
   feeBps: number;
   slippageBps: number;
 }
@@ -48,6 +49,7 @@ export const DEFAULT_AUTO_CONFIG: AutoConfig = {
   atrMult: 2,
   takeProfitPct: 0.08,
   trailing: false,
+  cooldownBars: 1,
   feeBps: 10,
   slippageBps: 5,
 };
@@ -164,6 +166,7 @@ export function runAutoStrategy(candles: Candle[], config: Partial<AutoConfig> =
   let wins = 0;
   let peakEquity = cfg.startCash;
   let maxDrawdown = 0;
+  let cooldownUntil = -1; // index until which fresh entries are suppressed
 
   const close = (price: number, time: number, index: number, reason: TradeReason) => {
     const fillPrice = price * (1 + (units > 0 ? -slip : slip)); // exit a long by selling (down), a short by buying (up)
@@ -233,6 +236,7 @@ export function runAutoStrategy(candles: Candle[], config: Partial<AutoConfig> =
         if (hitStop || hitTarget) {
           event = hitStop ? "stop_loss" : "take_profit";
           close(mark, time, i, event);
+          cooldownUntil = i + cfg.cooldownBars;
           exited = true;
         }
       }
@@ -244,14 +248,19 @@ export function runAutoStrategy(candles: Candle[], config: Partial<AutoConfig> =
       const sigStr: string = sig;
       if (!exited && sigStr !== sideStr) {
         const wasOpen = sideStr !== "flat";
-        if (wasOpen) {
-          close(mark, time, i, sigStr === "flat" ? "signal_exit" : "flip");
-        }
-        if (sigStr !== "flat") {
-          open(sig as "long" | "short", mark, time, i, wasOpen);
-          event = wasOpen ? "flip" : sigStr === "long" ? "open_long" : "open_short";
-        } else {
+        if (wasOpen && sigStr === "flat") {
+          close(mark, time, i, "signal_exit");
+          cooldownUntil = i + cfg.cooldownBars;
           event = "signal_exit";
+        } else if (wasOpen) {
+          // opposite signal: flip (close + reopen), bypassing cooldown
+          close(mark, time, i, "flip");
+          open(sig as "long" | "short", mark, time, i, true);
+          event = "flip";
+        } else if (i >= cooldownUntil) {
+          // fresh entry from flat, only once cooldown has elapsed
+          open(sig as "long" | "short", mark, time, i, false);
+          event = sigStr === "long" ? "open_long" : "open_short";
         }
       }
     }
