@@ -8,7 +8,7 @@ export function Footer() {
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/15 text-primary">
             <Activity className="h-4 w-4" />
           </span>
-          <span className="font-medium text-foreground">Kronos Trader</span>
+          <span className="font-medium text-foreground">Lodestar</span>
         </div>
         <p className="max-w-md text-center text-xs sm:text-right">
           Experimental software. Not financial advice. Crypto trading carries substantial risk of

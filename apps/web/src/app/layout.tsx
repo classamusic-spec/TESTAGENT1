@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "Kronos Trader — non-custodial AI crypto trading",
+  title: "Lodestar — non-custodial AI crypto trading",
   description:
     "Probabilistic OHLCV forecasts from the Kronos foundation model, executed on-chain via session keys. You keep custody. Paper trading by default.",
 };

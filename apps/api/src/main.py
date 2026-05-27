@@ -1,4 +1,4 @@
-"""Kronos Trader API entrypoint."""
+"""Lodestar API entrypoint."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-app = FastAPI(title="Kronos Trader API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Lodestar API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

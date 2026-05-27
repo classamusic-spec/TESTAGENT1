@@ -27,7 +27,7 @@ export const authenticationAdapter: StringAuthenticationAdapter =
       nonce,
       uri: env.appUrl,
       version: "1",
-      statement: "Sign in to Kronos Trader.",
+      statement: "Sign in to Lodestar.",
     });
   },
 

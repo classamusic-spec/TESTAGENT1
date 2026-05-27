@@ -1,6 +1,6 @@
-# Kronos Trader
+# Lodestar
 
-A **non-custodial** crypto trading web app powered by the [Kronos](https://github.com/shiyu-coder/Kronos)
+**Lodestar** is a **non-custodial** crypto trading web app powered by the [Kronos](https://github.com/shiyu-coder/Kronos)
 foundation model. You connect a wallet, the bot generates probabilistic OHLCV
 forecasts, derives long/short signals, and (optionally) executes on-chain through
 delegated session keys — **you keep custody the entire way**, and every account
@@ -190,7 +190,7 @@ This project encodes hard rules (see [`CLAUDE.md`](CLAUDE.md)). The most importa
 
 ## Disclaimer
 
-Kronos Trader is experimental research software. Cryptocurrency trading carries
+Lodestar is experimental research software. Cryptocurrency trading carries
 substantial risk of loss. Nothing here is financial advice. Use paper trading,
 testnets, and tiny sizes; you are solely responsible for any funds you put at
 risk. No warranty of any kind is provided.

@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # SIWE auth. This is a single-owner personal bot: only OWNER_ADDRESS may
     # authenticate. There is intentionally no user-accounts table.
     owner_address: str = ""
-    siwe_statement: str = "Sign in to Kronos Trader."
+    siwe_statement: str = "Sign in to Lodestar."
     nonce_ttl_seconds: int = 600
     session_ttl_seconds: int = 86_400
 

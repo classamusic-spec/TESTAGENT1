@@ -10,7 +10,7 @@ import { env } from "@/lib/env";
  * development. Mainnet is added in Phase 10 behind explicit review.
  */
 export const wagmiConfig: Config = getDefaultConfig({
-  appName: "Kronos Trader",
+  appName: "Lodestar",
   projectId: env.walletConnectProjectId,
   chains: [baseSepolia, sepolia],
   ssr: true,

@@ -32,7 +32,7 @@ export default function AnalyticsPage() {
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-primary text-primary-foreground shadow-[0_2px_12px_-2px_hsl(158_84%_45%/0.6)]">
                 <Activity className="h-5 w-5" />
               </span>
-              Kronos Trader
+              Lodestar
             </a>
             <DashboardNav />
           </div>

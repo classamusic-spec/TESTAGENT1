@@ -30,7 +30,7 @@ def _build_message(address: str, nonce: str, domain: str = "localhost:3000") -> 
     return (
         f"{domain} wants you to sign in with your Ethereum account:\n"
         f"{address}\n\n"
-        "Sign in to Kronos Trader.\n\n"
+        "Sign in to Lodestar.\n\n"
         f"URI: http://{domain}\n"
         "Version: 1\n"
         "Chain ID: 84532\n"
