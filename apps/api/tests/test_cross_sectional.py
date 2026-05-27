@@ -5,7 +5,13 @@ import pytest
 from src.backtest.cross_sectional import run_cross_sectional
 from src.backtest.costs import CostModel
 from src.data.ohlcv import Candle
-from src.signals.cross_sectional import CrossSectionalConfig, rank_and_allocate
+from src.signals.cross_sectional import (
+    CrossSectionalConfig,
+    make_score_fn,
+    momentum_score,
+    rank_and_allocate,
+    risk_adjusted_momentum,
+)
 
 STEP = 3_600_000
 
@@ -40,6 +46,29 @@ def test_long_only_when_short_disabled() -> None:
 def test_invalid_config() -> None:
     with pytest.raises(ValueError):
         CrossSectionalConfig(long_k=0, short_k=0)
+
+
+# --- scoring -------------------------------------------------------------------
+
+
+def test_momentum_score_sign() -> None:
+    up = _series([100 + i for i in range(30)])
+    down = _series([100 - i for i in range(30)])
+    assert momentum_score(up, 6) > 0
+    assert momentum_score(down, 6) < 0
+
+
+def test_risk_adjusted_normalizes_by_vol() -> None:
+    # Same momentum, different volatility -> calmer series scores higher.
+    calm = _series([100 + 0.5 * i for i in range(40)])
+    wild = _series([100 + 0.5 * i + 6 * ((-1) ** i) for i in range(40)])
+    assert risk_adjusted_momentum(calm, 6) > risk_adjusted_momentum(wild, 6)
+
+
+def test_make_score_fn() -> None:
+    up = _series([100 * 1.01**i for i in range(40)])
+    assert make_score_fn("momentum", 6)(up) > 0
+    assert make_score_fn("risk_adjusted", 6)(up) > 0
 
 
 # --- backtest ------------------------------------------------------------------
