@@ -43,6 +43,37 @@ def expectancy(returns: Sequence[float]) -> float:
 
 
 @dataclass(frozen=True)
+class TradeStats:
+    n: int
+    win_rate: float
+    avg_win: float
+    avg_loss: float  # positive magnitude
+    reward_risk: float  # avg_win / avg_loss
+    expectancy: float  # win%*avgWin - loss%*avgLoss (per trade)
+    profit_factor: float  # gross profit / gross loss
+
+
+def trade_expectancy(pnls: Sequence[float]) -> TradeStats:
+    """Per-trade expectancy stats — the right objective, not win rate alone.
+
+    A low win rate can still be profitable with a high reward:risk, and a high
+    win rate can lose money with poor reward:risk. Expectancy captures both.
+    """
+    if not pnls:
+        return TradeStats(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    wins = [p for p in pnls if p > 0]
+    losses = [-p for p in pnls if p < 0]
+    n = len(pnls)
+    win_rate = len(wins) / n
+    avg_win = (sum(wins) / len(wins)) if wins else 0.0
+    avg_loss = (sum(losses) / len(losses)) if losses else 0.0
+    rr = (avg_win / avg_loss) if avg_loss > 0 else 0.0
+    expectancy = win_rate * avg_win - (1 - win_rate) * avg_loss
+    pf = (sum(wins) / sum(losses)) if losses else 0.0
+    return TradeStats(n, win_rate, avg_win, avg_loss, rr, expectancy, pf)
+
+
+@dataclass(frozen=True)
 class DrawdownDistribution:
     median: float
     p95: float
