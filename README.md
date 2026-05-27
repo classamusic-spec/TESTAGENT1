@@ -51,8 +51,9 @@ unrealized), a trade log, and human-set strategy controls.
 ![Paper lab](docs/images/paper-lab.png)
 
 ### Analytics
-PnL analytics + trade history, the model calibration curve, per-asset
-enable/disable, and notification preferences.
+PnL analytics + trade history, a model calibration reliability diagram, a model-
+health breakdown (risk-adjusted metrics), per-asset enable/disable, and alert &
+notification preferences.
 
 ![Analytics](docs/images/analytics.png)
 

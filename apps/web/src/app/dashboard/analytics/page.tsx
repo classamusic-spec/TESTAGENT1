@@ -9,6 +9,7 @@ import { AssetPrefsPanel } from "@/components/dashboard/asset-prefs-panel";
 import { AssetSelect } from "@/components/dashboard/asset-select";
 import { CalibrationChart } from "@/components/dashboard/calibration-chart";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
+import { ModelHealth } from "@/components/dashboard/model-health";
 import { NetworkBadge } from "@/components/dashboard/network-badge";
 import { NotificationPrefsPanel } from "@/components/dashboard/notification-prefs-panel";
 import { PnlAnalytics } from "@/components/dashboard/pnl-analytics";
@@ -62,9 +63,12 @@ export default function AnalyticsPage() {
           <div className="h-[480px] w-full rounded-md shimmer" />
         ) : (
           <motion.div className="space-y-6" variants={staggerContainer} initial="hidden" animate="show">
-            <motion.div className="grid gap-6 lg:grid-cols-3" variants={staggerItem}>
+            <motion.div className="grid gap-6 lg:grid-cols-2" variants={staggerItem}>
               <PnlAnalytics candles={data.candles} />
-              <CalibrationChart candles={data.candles} />
+              <div className="space-y-6">
+                <CalibrationChart candles={data.candles} />
+                <ModelHealth />
+              </div>
             </motion.div>
             <motion.div className="grid gap-6 lg:grid-cols-2" variants={staggerItem}>
               <AssetPrefsPanel />
